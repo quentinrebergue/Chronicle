@@ -7,6 +7,7 @@ final class RecordingViewModel: ObservableObject {
     @Published var state: RecordingState = .idle
     @Published var transcription: String = ""
     @Published var correctedTranscription: String = ""
+    @Published var taggedText: TaggedText?
     @Published var elapsedTime: TimeInterval = 0
     @Published var audioLevels: [Float] = Array(repeating: 0, count: 40)
     @Published var llmStatus: String = ""
@@ -37,12 +38,14 @@ final class RecordingViewModel: ObservableObject {
     private var speech: SpeechService?
     private var llm: LLMService?
     private var toolExecutor: ToolExecutor?
+    private var preProcessor: PreProcessor?
     private var viewContext: NSManagedObjectContext?
 
     func setup(context: NSManagedObjectContext, llmService: LLMService) {
         self.viewContext = context
         self.llm = llmService
         self.toolExecutor = ToolExecutor(context: context)
+        self.preProcessor = PreProcessor(context: context)
         self.speech = SpeechService()
 
         Task {
@@ -113,33 +116,67 @@ final class RecordingViewModel: ObservableObject {
                 transcription = rawText
                 print("📝 Transcription brute: \(rawText)")
 
-                // Étape 2 : Correction + extraction LLM
-                if let llm, llm.isLoaded {
-                    state = .processing
-                    llmStatus = "Analyse et correction…"
+                // Étape 2 : Sauvegarder l'entrée
+                let entry = try saveEntry(
+                    audioURL: audioURL,
+                    rawTranscription: rawText,
+                    correctedTranscription: nil
+                )
 
-                    let entities = toolExecutor?.fetchKnownEntities() ?? KnownEntities()
-                    print("🧠 Entités connues: \(entities)")
-                    let result = try await llm.processTranscription(rawText: rawText, knownEntities: entities)
+                // Étape 3 : NLTagger (instantané) pour les tags rapides
+                state = .processing
+                llmStatus = "Analyse rapide…"
+                let nlpEntities = nlpService.detectEntities(in: rawText)
+                taggedText = TaggedText(rawText: rawText, entities: nlpEntities)
 
-                    correctedTranscription = result.correctedText
-                    print("✅ Texte corrigé: \(result.correctedText)")
-                    print("🔧 Tool calls: \(result.toolCalls.map { "\($0.name)(\($0.arguments))" })")
+                // Étape 4 : LLM NER (extraction d'entités enrichie)
+                if let llm {
+                    llmStatus = "Chargement du modèle…"
+                    try await llm.loadModel()
+                    llmStatus = "Extraction des entités…"
+                    let llmEntities = try await llm.extractEntities(from: rawText)
+                    print("🤖 LLM entités: \(llmEntities.map { "[\($0.type.rawValue):\($0.name)]" })")
 
-                    // Étape 3 : Sauvegarde CoreData
-                    let entry = try saveEntry(
-                        audioURL: audioURL,
-                        rawTranscription: rawText,
-                        correctedTranscription: result.correctedText
-                    )
-
-                    // Étape 4 : Exécution des tool calls
-                    if let toolExecutor {
-                        try toolExecutor.execute(toolCalls: result.toolCalls, for: entry)
+                    // Convertir en DetectedEntity
+                    let llmDetected = llmEntities.compactMap { entity -> DetectedEntity? in
+                        guard let range = entity.rangeInSource else { return nil }
+                        let type: DetectedEntity.EntityType = switch entity.type {
+                        case .person: .person
+                        case .place: .place
+                        case .event: .event
+                        case .activity: .activity
+                        }
+                        return DetectedEntity(text: entity.name, type: type, range: range)
                     }
-                } else {
-                    // LLM pas encore chargé — sauvegarde brute uniquement
-                    _ = try saveEntry(audioURL: audioURL, rawTranscription: rawText, correctedTranscription: nil)
+
+                    // Fusionner NLTagger + LLM (dédupliquer par range)
+                    var merged = nlpEntities
+                    for llmEntity in llmDetected {
+                        let overlaps = merged.contains { existing in
+                            existing.range.overlaps(llmEntity.range)
+                        }
+                        if !overlaps {
+                            merged.append(llmEntity)
+                        }
+                    }
+                    merged.sort { $0.range.lowerBound < $1.range.lowerBound }
+                    print("🏷️ Entités fusionnées: \(merged.map { "[\($0.type.rawValue):\($0.text)]" })")
+
+                    // Créer les entités CoreData
+                    let existing = preProcessor?.process(rawText: rawText).existingEntityNames ?? []
+                    if let toolExecutor {
+                        try toolExecutor.createEntitiesFromNLP(
+                            detected: merged.filter { $0.type == .person || $0.type == .place },
+                            existing: existing,
+                            for: entry
+                        )
+                    }
+
+                    // Mettre à jour les tags avec les entités fusionnées
+                    taggedText = TaggedText(rawText: rawText, entities: merged)
+
+                    // Décharger le modèle pour libérer la RAM
+                    await llm.unloadModel()
                 }
 
                 llmStatus = ""
@@ -168,9 +205,61 @@ final class RecordingViewModel: ObservableObject {
         state = .idle
         transcription = ""
         correctedTranscription = ""
+        taggedText = nil
         elapsedTime = 0
         audioLevels = Array(repeating: 0, count: 40)
         llmStatus = ""
+    }
+
+    private let nlpService = NLPService()
+
+    private func updateTaggedText(from text: String) {
+        let entities = nlpService.detectEntities(in: text)
+        taggedText = TaggedText(rawText: text, entities: entities)
+    }
+
+    func handleTagEdit(segment: TaggedSegment, newText: String, newType: DetectedEntity.EntityType?) {
+        guard let viewContext else { return }
+
+        // Si le texte a changé, mettre à jour l'entité dans CoreData
+        if newText != segment.text, let type = newType {
+            switch type {
+            case .place:
+                // Renommer le lieu existant ou créer un nouveau
+                let request = Lieu.fetchRequest()
+                request.predicate = NSPredicate(format: "nom ==[cd] %@", segment.text)
+                if let existing = try? viewContext.fetch(request).first {
+                    existing.nom = newText
+                } else {
+                    let lieu = Lieu(context: viewContext)
+                    lieu.id = UUID()
+                    lieu.nom = newText
+                    lieu.frequence = 1
+                }
+            case .person:
+                let request = Personne.fetchRequest()
+                request.predicate = NSPredicate(format: "nom ==[cd] %@", segment.text)
+                if let existing = try? viewContext.fetch(request).first {
+                    existing.nom = newText
+                } else {
+                    let person = Personne(context: viewContext)
+                    person.id = UUID()
+                    person.nom = newText
+                    person.frequenceMention = 1
+                }
+            case .organization, .event, .activity:
+                break
+            }
+            try? viewContext.save()
+            print("✏️ Tag modifié: \(segment.text) → \(newText) [\(type.rawValue)]")
+        }
+
+        // Re-générer les tags avec le texte mis à jour
+        if let tagged = taggedText {
+            let updatedText = tagged.rawText.replacingOccurrences(of: segment.text, with: newText)
+            correctedTranscription = updatedText
+            updateTaggedText(from: updatedText)
+        }
     }
 
     var formattedTime: String {

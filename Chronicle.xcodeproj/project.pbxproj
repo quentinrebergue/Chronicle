@@ -22,6 +22,10 @@
 		A1000009 /* ToolDefinitions.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000009 /* ToolDefinitions.swift */; };
 		A100000A /* ToolExecutor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000A /* ToolExecutor.swift */; };
 		A100000B /* NarrativePrompts.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000B /* NarrativePrompts.swift */; };
+		A100000F /* NLPService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000F /* NLPService.swift */; };
+		A1000010 /* PreProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000010F /* PreProcessor.swift */; };
+		A1000011 /* TaggedText.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000011 /* TaggedText.swift */; };
+		A1000012 /* TaggedTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000012 /* TaggedTextView.swift */; };
 		A100000C /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = B100000C /* MLXLLM */; };
 		A100000D /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = B100000D /* MLXLMCommon */; };
 /* End PBXBuildFile section */
@@ -38,6 +42,10 @@
 		B1000009 /* ToolDefinitions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolDefinitions.swift; sourceTree = "<group>"; };
 		B100000A /* ToolExecutor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolExecutor.swift; sourceTree = "<group>"; };
 		B100000B /* NarrativePrompts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NarrativePrompts.swift; sourceTree = "<group>"; };
+		B100000F /* NLPService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NLPService.swift; sourceTree = "<group>"; };
+		B1000010F /* PreProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreProcessor.swift; sourceTree = "<group>"; };
+		B1000011 /* TaggedText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaggedText.swift; sourceTree = "<group>"; };
+		B1000012 /* TaggedTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaggedTextView.swift; sourceTree = "<group>"; };
 		B1000010 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B1000099 /* Chronicle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Chronicle.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -101,6 +109,7 @@
 			isa = PBXGroup;
 			children = (
 				B1000002 /* RecordingView.swift */,
+				B1000012 /* TaggedTextView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -117,6 +126,7 @@
 			isa = PBXGroup;
 			children = (
 				B1000006 /* PersistenceController.swift */,
+				B1000011 /* TaggedText.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -130,6 +140,8 @@
 				B1000009 /* ToolDefinitions.swift */,
 				B100000A /* ToolExecutor.swift */,
 				B100000B /* NarrativePrompts.swift */,
+				B100000F /* NLPService.swift */,
+				B1000010F /* PreProcessor.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -225,6 +237,10 @@
 				A1000009 /* ToolDefinitions.swift in Sources */,
 				A100000A /* ToolExecutor.swift in Sources */,
 				A100000B /* NarrativePrompts.swift in Sources */,
+				A100000F /* NLPService.swift in Sources */,
+				A1000010 /* PreProcessor.swift in Sources */,
+				A1000011 /* TaggedText.swift in Sources */,
+				A1000012 /* TaggedTextView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

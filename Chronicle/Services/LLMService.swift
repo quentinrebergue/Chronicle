@@ -10,6 +10,13 @@ final class LLMService: ObservableObject {
 
     private var modelContainer: ModelContainer?
 
+    enum Model: String, CaseIterable {
+        case qwen3_4B = "mlx-community/Qwen3-4B-4bit"
+        case qwen3_8B = "mlx-community/Qwen3-8B-4bit"
+    }
+
+    var currentModel: Model = .qwen3_4B
+
     enum LLMError: Error, LocalizedError {
         case modelNotLoaded
 
@@ -20,9 +27,30 @@ final class LLMService: ObservableObject {
         }
     }
 
-    func loadModel() async throws {
+    func downloadModel(_ model: Model? = nil) async throws {
+        if let model { currentModel = model }
+        let downloader = HubDownloader()
+        let repo = Hub.Repo(id: currentModel.rawValue)
+
+        print("📥 Vérification modèle \(currentModel.rawValue)…")
+        _ = try await downloader.download(
+            id: currentModel.rawValue,
+            revision: nil,
+            matching: ["*.safetensors", "*.json", "tokenizer.*"],
+            useLatest: false
+        ) { progress in
+            let percent = Int(progress.fractionCompleted * 100)
+            let completed = ByteCountFormatter.string(fromByteCount: progress.completedUnitCount, countStyle: .file)
+            let total = ByteCountFormatter.string(fromByteCount: progress.totalUnitCount, countStyle: .file)
+            print("📦 Téléchargement: \(percent)% — \(completed) / \(total)")
+        }
+        print("✅ Modèle téléchargé sur le disque")
+    }
+
+    func loadModel(_ model: Model? = nil) async throws {
+        if let model { currentModel = model }
         let config = ModelConfiguration(
-            id: "mlx-community/Qwen3-1.7B-4bit"
+            id: currentModel.rawValue
         )
 
         let downloader = HubDownloader()
@@ -32,85 +60,67 @@ final class LLMService: ObservableObject {
             from: downloader,
             using: tokenizerLoader,
             configuration: config
-        ) { progress in
-            let percent = Int(progress.fractionCompleted * 100)
-            let completed = ByteCountFormatter.string(fromByteCount: progress.completedUnitCount, countStyle: .file)
-            let total = ByteCountFormatter.string(fromByteCount: progress.totalUnitCount, countStyle: .file)
-            print("📦 Modèle: \(percent)% — \(completed) / \(total) — fichiers: \(progress.completedUnitCount)/\(progress.totalUnitCount)")
-        }
+        ) { _ in }
 
         await MainActor.run { isLoaded = true }
+        print("✅ Modèle LLM chargé en RAM")
     }
 
-    func processTranscription(
-        rawText: String,
-        knownEntities: KnownEntities
-    ) async throws -> LLMResult {
+    func unloadModel() async {
+        modelContainer = nil
+        await MainActor.run { isLoaded = false }
+        print("🗑️ Modèle LLM déchargé de la RAM")
+    }
+
+    // MARK: - NER : extraction d'entités
+
+    func extractEntities(from text: String) async throws -> [LLMEntity] {
         guard let modelContainer else { throw LLMError.modelNotLoaded }
 
         await MainActor.run { isGenerating = true }
         defer { Task { @MainActor in isGenerating = false } }
 
-        let systemPrompt = buildSystemPrompt(entities: knownEntities)
+        let prompt = """
+            /no_think
+            Extrais les entités du texte suivant. Retourne UNIQUEMENT une liste, une entité par ligne, dans ce format exact :
+            TYPE:nom
+
+            Types possibles : PERSONNE, LIEU, EVENEMENT, ACTIVITE
+
+            Règles :
+            - PERSONNE : prénoms ou noms de personnes mentionnées
+            - LIEU : villes, pays, îles, rues, bâtiments, restaurants, etc.
+            - EVENEMENT : événements spécifiques (Pride, fête, concert, etc.)
+            - ACTIVITE : activités faites (trail, café, rangement, etc.)
+
+            Retourne UNIQUEMENT la liste, rien d'autre. Pas de numéros, pas de tirets.
+            """
 
         let messages: [Message] = [
-            ["role": "system", "content": systemPrompt],
-            ["role": "user", "content": rawText]
+            ["role": "system", "content": prompt],
+            ["role": "user", "content": text]
         ]
 
-        let userInput = UserInput(messages: messages, tools: ToolDefinitions.all)
+        let userInput = UserInput(messages: messages)
         let lmInput = try await modelContainer.prepare(input: userInput)
 
         let stream = try await modelContainer.generate(
             input: lmInput,
-            parameters: .init(temperature: 0.3)
+            parameters: .init(temperature: 0.1)
         )
 
         var fullText = ""
-        var toolCalls: [ChronicleToolCall] = []
-
         for await generation in stream {
-            switch generation {
-            case .chunk(let text):
-                fullText += text
-            case .toolCall(let call):
-                let args = call.function.arguments.reduce(into: [String: String]()) { result, pair in
-                    switch pair.value {
-                    case .string(let s):
-                        result[pair.key] = s
-                    case .int(let i):
-                        result[pair.key] = "\(i)"
-                    case .double(let d):
-                        result[pair.key] = "\(d)"
-                    case .bool(let b):
-                        result[pair.key] = "\(b)"
-                    default:
-                        result[pair.key] = "\(pair.value)"
-                    }
-                }
-                toolCalls.append(ChronicleToolCall(name: call.function.name, arguments: args))
-            case .info:
-                break
+            if let chunk = generation.chunk {
+                fullText += chunk
             }
         }
 
-        let cleaned = Self.stripThinkingTags(fullText).trimmingCharacters(in: .whitespacesAndNewlines)
-
-        return LLMResult(
-            correctedText: cleaned.isEmpty ? rawText : cleaned,
-            toolCalls: toolCalls
-        )
+        let cleaned = Self.stripThinkingTags(fullText)
+        return Self.parseEntities(cleaned, sourceText: text)
     }
 
-    private static func stripThinkingTags(_ text: String) -> String {
-        guard let range = text.range(of: "<think>[\\s\\S]*?</think>", options: .regularExpression) else {
-            if let start = text.range(of: "<think>") {
-                return String(text[..<start.lowerBound])
-            }
-            return text
-        }
-        return text.replacingCharacters(in: range, with: "")
-    }
+    // MARK: - Résumé narratif
 
     func generateSummary(prompt: String) async throws -> String {
         guard let modelContainer else { throw LLMError.modelNotLoaded }
@@ -141,34 +151,69 @@ final class LLMService: ObservableObject {
         return fullText.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private func buildSystemPrompt(entities: KnownEntities) -> String {
-        var prompt = """
-            /no_think
-            Tu es l'assistant de transcription de l'utilisateur.
+    // MARK: - Parsing
 
-            IMPORTANT : Tu DOIS utiliser les outils disponibles pour extraire les entités.
-            Pour chaque lieu mentionné → appelle createPlace
-            Pour chaque personne mentionnée → appelle createPerson
-            Pour chaque événement → appelle createEvent
-            Pour l'émotion générale → appelle setEmotion
+    private static func parseEntities(_ text: String, sourceText: String) -> [LLMEntity] {
+        var entities: [LLMEntity] = []
 
-            Après les appels d'outils, retourne UNIQUEMENT le texte corrigé sans explication.
-            Si des entités connues correspondent à des mots mal transcrits, corrige-les.
+        for line in text.components(separatedBy: "\n") {
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let colonIndex = trimmed.firstIndex(of: ":") else { continue }
 
-            """
+            let typeStr = String(trimmed[trimmed.startIndex..<colonIndex]).trimmingCharacters(in: .whitespaces).uppercased()
+            let name = String(trimmed[trimmed.index(after: colonIndex)...]).trimmingCharacters(in: .whitespaces)
 
-        if !entities.personnes.isEmpty {
-            prompt += "Personnes connues : \(entities.personnes.joined(separator: ", "))\n"
+            guard !name.isEmpty else { continue }
+
+            let type: LLMEntity.EntityType? = switch typeStr {
+            case "PERSONNE": .person
+            case "LIEU": .place
+            case "EVENEMENT", "ÉVÉNEMENT": .event
+            case "ACTIVITE", "ACTIVITÉ": .activity
+            default: nil
+            }
+
+            guard let type else { continue }
+
+            // Trouver la position dans le texte source
+            let range = sourceText.range(of: name, options: .caseInsensitive)
+
+            entities.append(LLMEntity(name: name, type: type, rangeInSource: range))
         }
-        if !entities.lieux.isEmpty {
-            prompt += "Lieux connus : \(entities.lieux.joined(separator: ", "))\n"
-        }
-        if !entities.themes.isEmpty {
-            prompt += "Thèmes connus : \(entities.themes.joined(separator: ", "))\n"
-        }
 
-        return prompt
+        return entities
     }
+
+    private static func stripThinkingTags(_ text: String) -> String {
+        guard let range = text.range(of: "<think>[\\s\\S]*?</think>", options: .regularExpression) else {
+            if let start = text.range(of: "<think>") {
+                return String(text[..<start.lowerBound])
+            }
+            return text
+        }
+        return text.replacingCharacters(in: range, with: "")
+    }
+}
+
+// MARK: - Types
+
+struct LLMEntity {
+    enum EntityType: String {
+        case person = "PERSONNE"
+        case place = "LIEU"
+        case event = "EVENEMENT"
+        case activity = "ACTIVITE"
+    }
+
+    let name: String
+    let type: EntityType
+    let rangeInSource: Range<String.Index>?
+}
+
+struct LLMResult {
+    let correctedText: String
+    let emotion: String?
+    let emotionIntensity: Int16?
 }
 
 // MARK: - Hugging Face Downloader
@@ -234,22 +279,4 @@ private struct TokenizerWrapper: MLXLMCommon.Tokenizer {
     ) throws -> [Int] {
         try upstream.applyChatTemplate(messages: messages, tools: tools, additionalContext: additionalContext)
     }
-}
-
-// MARK: - Types
-
-struct KnownEntities {
-    var personnes: [String] = []
-    var lieux: [String] = []
-    var themes: [String] = []
-}
-
-struct LLMResult {
-    let correctedText: String
-    let toolCalls: [ChronicleToolCall]
-}
-
-struct ChronicleToolCall {
-    let name: String
-    let arguments: [String: String]
 }

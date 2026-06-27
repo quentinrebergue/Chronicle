@@ -11,9 +11,9 @@ struct ChronicleApp: App {
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 .task {
                     do {
-                        try await llmService.loadModel()
+                        try await llmService.downloadModel()
                     } catch {
-                        print("Erreur chargement LLM: \(error)")
+                        print("⚠️ Téléchargement modèle: \(error)")
                     }
                 }
         }

@@ -4,6 +4,8 @@ struct RecordingView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @StateObject private var vm = RecordingViewModel()
     @ObservedObject var llmService: LLMService
+    @State private var editingSegment: TaggedSegment?
+    @State private var showingTagEditor = false
 
     var body: some View {
         NavigationStack {
@@ -144,40 +146,46 @@ struct RecordingView: View {
 
     private var transcriptionCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            if !vm.correctedTranscription.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Transcription corrigée")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    ScrollView {
-                        Text(vm.correctedTranscription)
-                            .font(.body)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .frame(maxHeight: 120)
+            HStack {
+                Text("Transcription")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                if vm.taggedText != nil {
+                    Text("Tap sur un mot souligné pour le modifier")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
                 }
+            }
 
-                Divider()
-
-                DisclosureGroup("Transcription brute") {
+            ScrollView {
+                if let tagged = vm.taggedText {
+                    TaggedTextView(taggedText: tagged) { segment in
+                        editingSegment = segment
+                        showingTagEditor = true
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
                     Text(vm.transcription)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(.body)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .font(.caption)
-            } else {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Transcription")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    ScrollView {
-                        Text(vm.transcription)
-                            .font(.body)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .frame(maxHeight: 160)
+            }
+            .frame(maxHeight: 200)
+
+            // Légende des couleurs
+            if vm.taggedText != nil {
+                HStack(spacing: 8) {
+                    Label("Lieu", systemImage: "mappin")
+                        .foregroundStyle(.blue)
+                    Label("Personne", systemImage: "person")
+                        .foregroundStyle(.green)
+                    Label("Événement", systemImage: "star")
+                        .foregroundStyle(.yellow)
+                    Label("Activité", systemImage: "figure.run")
+                        .foregroundStyle(.purple)
                 }
+                .font(.caption2)
             }
 
             Button("Nouvelle entrée") {
@@ -188,6 +196,14 @@ struct RecordingView: View {
         }
         .padding()
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .sheet(isPresented: $showingTagEditor) {
+            if let segment = editingSegment {
+                TagEditorSheet(segment: segment, isPresented: $showingTagEditor) { newText, newType in
+                    vm.handleTagEdit(segment: segment, newText: newText, newType: newType)
+                }
+                .presentationDetents([.medium])
+            }
+        }
     }
 }
 

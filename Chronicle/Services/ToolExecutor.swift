@@ -8,43 +8,48 @@ final class ToolExecutor {
         self.viewContext = context
     }
 
-    func execute(toolCalls: [ChronicleToolCall], for entry: EntreeVocale) throws {
-        for call in toolCalls {
-            switch call.name {
-            case "createPerson":
-                try createPerson(args: call.arguments, entry: entry)
-            case "createEvent":
-                try createEvent(args: call.arguments, entry: entry)
-            case "createPlace":
-                try createPlace(args: call.arguments)
-            case "setEmotion":
-                setEmotion(args: call.arguments, entry: entry)
-            default:
-                break
+    func createEntitiesFromNLP(detected: [DetectedEntity], existing: Set<String>, for entry: EntreeVocale) throws {
+        for entity in detected {
+            if existing.contains(entity.text) {
+                // Entité connue — juste lier et incrémenter
+                switch entity.type {
+                case .person:
+                    try linkExistingPerson(name: entity.text, entry: entry)
+                case .place:
+                    try linkExistingPlace(name: entity.text)
+                case .organization, .event, .activity:
+                    break
+                }
+            } else {
+                // Nouvelle entité
+                switch entity.type {
+                case .person:
+                    try createPerson(args: ["name": entity.text], entry: entry)
+                case .place:
+                    try createPlace(args: ["name": entity.text])
+                case .organization, .event, .activity:
+                    break
+                }
             }
         }
         try viewContext.save()
+        print("💾 Entités NLP sauvegardées: \(detected.map { "[\($0.type.rawValue):\($0.text)]" })")
     }
 
-    func fetchKnownEntities() -> KnownEntities {
-        var entities = KnownEntities()
+    private func linkExistingPerson(name: String, entry: EntreeVocale) throws {
+        let request = Personne.fetchRequest()
+        request.predicate = NSPredicate(format: "nom ==[cd] %@", name)
+        guard let person = try viewContext.fetch(request).first else { return }
+        person.frequenceMention += 1
+        person.derniereApparition = Date()
+        entry.addToPersonnes(person)
+    }
 
-        let personRequest = Personne.fetchRequest()
-        if let personnes = try? viewContext.fetch(personRequest) {
-            entities.personnes = personnes.compactMap { $0.nom }
-        }
-
-        let lieuRequest = Lieu.fetchRequest()
-        if let lieux = try? viewContext.fetch(lieuRequest) {
-            entities.lieux = lieux.compactMap { $0.nom }
-        }
-
-        let themeRequest = Theme.fetchRequest()
-        if let themes = try? viewContext.fetch(themeRequest) {
-            entities.themes = themes.compactMap { $0.label }
-        }
-
-        return entities
+    private func linkExistingPlace(name: String) throws {
+        let request = Lieu.fetchRequest()
+        request.predicate = NSPredicate(format: "nom ==[cd] %@", name)
+        guard let lieu = try viewContext.fetch(request).first else { return }
+        lieu.frequence += 1
     }
 
     private func createPerson(args: [String: String], entry: EntreeVocale) throws {
