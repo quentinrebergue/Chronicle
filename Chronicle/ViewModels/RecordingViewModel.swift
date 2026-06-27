@@ -50,9 +50,9 @@ final class RecordingViewModel: ObservableObject {
         self.speech = SpeechService()
         recorder.prepareSession()
 
-        Task {
+        Task.detached(priority: .background) {
             do {
-                try await gliner.load()
+                try await self.gliner.load()
             } catch {
                 print("⚠️ GLiNER: \(error)")
             }

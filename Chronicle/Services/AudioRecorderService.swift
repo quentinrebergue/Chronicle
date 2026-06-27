@@ -13,20 +13,24 @@ final class AudioRecorderService: NSObject, ObservableObject {
     static let maxDuration: TimeInterval = 120 // 2 min
 
     var currentFileURL: URL? { recorder?.url }
+    private var sessionReady = false
 
     func prepareSession() {
         Task.detached(priority: .userInitiated) {
             let session = AVAudioSession.sharedInstance()
             try? session.setCategory(.record, mode: .default)
             try? session.setActive(true)
+            await MainActor.run { self.sessionReady = true }
             print("🎤 Session audio prête")
         }
     }
 
     func startRecording() throws {
-        let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.record, mode: .default)
-        try session.setActive(true)
+        if !sessionReady {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.record, mode: .default)
+            try session.setActive(true)
+        }
 
         let url = Self.newRecordingURL()
         let settings: [String: Any] = [
@@ -73,7 +77,7 @@ final class AudioRecorderService: NSObject, ObservableObject {
     }
 
     func deactivateSession() {
-        try? AVAudioSession.sharedInstance().setActive(false)
+        // Ne pas désactiver — la réactivation prend ~7 secondes
     }
 
     private static func newRecordingURL() -> URL {

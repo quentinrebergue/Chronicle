@@ -152,7 +152,7 @@ struct RecordingView: View {
                     .foregroundStyle(.secondary)
                 Spacer()
                 if vm.taggedText != nil {
-                    Text("Tap sur un mot souligné pour le modifier")
+                    Text("Tap sur un tag pour le modifier")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                 }
@@ -164,7 +164,6 @@ struct RecordingView: View {
                         editingSegment = segment
                         showingTagEditor = true
                     }
-                    .fixedSize(horizontal: false, vertical: true)
                 } else {
                     Text(vm.transcription)
                         .font(.body)
@@ -173,20 +172,6 @@ struct RecordingView: View {
             }
             .frame(maxHeight: 200)
 
-            // Légende des couleurs
-            if vm.taggedText != nil {
-                HStack(spacing: 8) {
-                    Label("Lieu", systemImage: "mappin")
-                        .foregroundStyle(.blue)
-                    Label("Personne", systemImage: "person")
-                        .foregroundStyle(.green)
-                    Label("Événement", systemImage: "star")
-                        .foregroundStyle(.yellow)
-                    Label("Activité", systemImage: "figure.run")
-                        .foregroundStyle(.purple)
-                }
-                .font(.caption2)
-            }
 
             Button("Nouvelle entrée") {
                 vm.reset()

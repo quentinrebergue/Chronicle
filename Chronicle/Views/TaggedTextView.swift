@@ -5,22 +5,52 @@ struct TaggedTextView: View {
     let onTagTap: (TaggedSegment) -> Void
 
     var body: some View {
-        FlowLayout(spacing: 0) {
-            ForEach(taggedText.segments) { segment in
-                if let type = segment.entity {
-                    Button(action: { onTagTap(segment) }) {
-                        Text(segment.text)
-                            .font(.body.bold())
-                            .foregroundStyle(color(for: type))
-                            .underline()
+        VStack(alignment: .leading, spacing: 12) {
+            // Texte avec couleurs inline
+            Text(buildAttributedString())
+                .font(.body)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Chips d'entités cliquables
+            let entitySegments = taggedText.segments.filter { $0.entity != nil }
+            if !entitySegments.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(entitySegments) { segment in
+                            Button(action: { onTagTap(segment) }) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: icon(for: segment.entity!))
+                                        .font(.caption2)
+                                    Text(segment.text)
+                                        .font(.caption)
+                                }
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(color(for: segment.entity!).opacity(0.15))
+                                .foregroundStyle(color(for: segment.entity!))
+                                .clipShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
-                    .buttonStyle(.plain)
-                } else {
-                    Text(segment.text)
-                        .font(.body)
                 }
             }
         }
+    }
+
+    private func buildAttributedString() -> AttributedString {
+        var result = AttributedString()
+
+        for segment in taggedText.segments {
+            var part = AttributedString(segment.text)
+            if let type = segment.entity {
+                part.foregroundColor = color(for: type)
+                part.font = .body.bold()
+            }
+            result.append(part)
+        }
+
+        return result
     }
 
     private func color(for type: DetectedEntity.EntityType) -> Color {
@@ -32,48 +62,15 @@ struct TaggedTextView: View {
         case .activity: .purple
         }
     }
-}
 
-// Simple flow layout that wraps content
-struct FlowLayout: Layout {
-    var spacing: CGFloat = 0
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let result = arrange(proposal: proposal, subviews: subviews)
-        return result.size
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let result = arrange(proposal: proposal, subviews: subviews)
-        for (index, position) in result.positions.enumerated() {
-            subviews[index].place(at: CGPoint(x: bounds.minX + position.x, y: bounds.minY + position.y), proposal: .unspecified)
+    private func icon(for type: DetectedEntity.EntityType) -> String {
+        switch type {
+        case .place: "mappin"
+        case .person: "person"
+        case .organization: "building.2"
+        case .event: "star"
+        case .activity: "figure.run"
         }
-    }
-
-    private func arrange(proposal: ProposedViewSize, subviews: Subviews) -> (size: CGSize, positions: [CGPoint]) {
-        let maxWidth = proposal.width ?? .infinity
-        var positions: [CGPoint] = []
-        var x: CGFloat = 0
-        var y: CGFloat = 0
-        var rowHeight: CGFloat = 0
-        var maxX: CGFloat = 0
-
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-
-            if x + size.width > maxWidth && x > 0 {
-                x = 0
-                y += rowHeight + spacing
-                rowHeight = 0
-            }
-
-            positions.append(CGPoint(x: x, y: y))
-            rowHeight = max(rowHeight, size.height)
-            x += size.width + spacing
-            maxX = max(maxX, x)
-        }
-
-        return (CGSize(width: maxX, height: y + rowHeight), positions)
     }
 }
 
