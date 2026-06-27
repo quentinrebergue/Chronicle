@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23231" systemVersion="24F74" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="NO" userDefinedModelVersionIdentifier="">
+    <entity name="EntreeVocale" representedClassName="EntreeVocale" syncable="YES" codeGenerationType="class">
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="dateEnregistrement" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="dureeSecondes" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="transcriptionBrute" optional="YES" attributeType="String"/>
+        <attribute name="resumeEntree" optional="YES" attributeType="String"/>
+        <attribute name="cheminAudio" optional="YES" attributeType="String"/>
+        <relationship name="personnes" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Personne" inverseName="entrees" inverseEntity="Personne"/>
+        <relationship name="evenements" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Evenement" inverseName="entree" inverseEntity="Evenement"/>
+        <relationship name="themes" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Theme" inverseName="entrees" inverseEntity="Theme"/>
+    </entity>
+    <entity name="Personne" representedClassName="Personne" syncable="YES" codeGenerationType="class">
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="nom" attributeType="String"/>
+        <attribute name="relation" optional="YES" attributeType="String"/>
+        <attribute name="sentimentMoyen" optional="YES" attributeType="String"/>
+        <attribute name="frequenceMention" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="derniereApparition" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="entrees" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="EntreeVocale" inverseName="personnes" inverseEntity="EntreeVocale"/>
+        <relationship name="evenements" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Evenement" inverseName="personnes" inverseEntity="Evenement"/>
+    </entity>
+    <entity name="Evenement" representedClassName="Evenement" syncable="YES" codeGenerationType="class">
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="titre" attributeType="String"/>
+        <attribute name="dateEvenement" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="importance" attributeType="Integer 16" defaultValueString="3" usesScalarValueType="YES"/>
+        <attribute name="emotion" optional="YES" attributeType="String"/>
+        <attribute name="lieu" optional="YES" attributeType="String"/>
+        <relationship name="entree" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="EntreeVocale" inverseName="evenements" inverseEntity="EntreeVocale"/>
+        <relationship name="personnes" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Personne" inverseName="evenements" inverseEntity="Personne"/>
+    </entity>
+    <entity name="Theme" representedClassName="Theme" syncable="YES" codeGenerationType="class">
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="label" attributeType="String"/>
+        <attribute name="occurrences" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="sentimentMoyen" optional="YES" attributeType="String"/>
+        <relationship name="entrees" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="EntreeVocale" inverseName="themes" inverseEntity="EntreeVocale"/>
+    </entity>
+    <entity name="Lieu" representedClassName="Lieu" syncable="YES" codeGenerationType="class">
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="nom" attributeType="String"/>
+        <attribute name="contexte" optional="YES" attributeType="String"/>
+        <attribute name="frequence" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+    </entity>
+    <entity name="ResumeHebdo" representedClassName="ResumeHebdo" syncable="YES" codeGenerationType="class">
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="semaine" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="annee" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="texteResume" attributeType="String"/>
+        <attribute name="dateGeneration" attributeType="Date" usesScalarValueType="NO"/>
+    </entity>
+</model>

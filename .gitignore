@@ -1,0 +1,17 @@
+## Xcode
+build/
+DerivedData/
+*.xcuserstate
+*.xcuserdatad/
+xcuserdata/
+
+## Swift Package Manager
+.build/
+Package.resolved
+
+## Models (too large for git)
+*.bin
+*.gguf
+
+## OS
+.DS_Store
