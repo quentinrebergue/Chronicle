@@ -5,7 +5,10 @@
         <attribute name="dateEnregistrement" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="dureeSecondes" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="transcriptionBrute" optional="YES" attributeType="String"/>
+        <attribute name="transcriptionCorrigee" optional="YES" attributeType="String"/>
         <attribute name="resumeEntree" optional="YES" attributeType="String"/>
+        <attribute name="emotionDominante" optional="YES" attributeType="String"/>
+        <attribute name="intensiteEmotion" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="cheminAudio" optional="YES" attributeType="String"/>
         <relationship name="personnes" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Personne" inverseName="entrees" inverseEntity="Personne"/>
         <relationship name="evenements" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Evenement" inverseName="entree" inverseEntity="Evenement"/>

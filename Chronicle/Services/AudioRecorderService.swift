@@ -61,7 +61,9 @@ final class AudioRecorderService: NSObject, ObservableObject {
         timer = nil
         levelTimer = nil
         isRecording = false
+    }
 
+    func deactivateSession() {
         try? AVAudioSession.sharedInstance().setActive(false)
     }
 

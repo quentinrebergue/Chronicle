@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1BAE6B5F2FF0472400CD4475 /* MLXHuggingFace in Frameworks */ = {isa = PBXBuildFile; productRef = 1BAE6B5E2FF0472400CD4475 /* MLXHuggingFace */; };
+		1BAE6B622FF0479400CD4475 /* Hub in Frameworks */ = {isa = PBXBuildFile; productRef = 1BAE6B612FF0479400CD4475 /* Hub */; };
+		1BAE6B642FF0479400CD4475 /* Tokenizers in Frameworks */ = {isa = PBXBuildFile; productRef = 1BAE6B632FF0479400CD4475 /* Tokenizers */; };
+		1BAE6B662FF0479400CD4475 /* Transformers in Frameworks */ = {isa = PBXBuildFile; productRef = 1BAE6B652FF0479400CD4475 /* Transformers */; };
 		A1000001 /* ChronicleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000001 /* ChronicleApp.swift */; };
 		A1000002 /* RecordingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000002 /* RecordingView.swift */; };
 		A1000003 /* RecordingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000003 /* RecordingViewModel.swift */; };
@@ -14,6 +18,12 @@
 		A1000005 /* SpeechService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000005 /* SpeechService.swift */; };
 		A1000006 /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000006 /* PersistenceController.swift */; };
 		A1000007 /* Chronicle.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = B1000007 /* Chronicle.xcdatamodeld */; };
+		A1000008 /* LLMService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000008 /* LLMService.swift */; };
+		A1000009 /* ToolDefinitions.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000009 /* ToolDefinitions.swift */; };
+		A100000A /* ToolExecutor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000A /* ToolExecutor.swift */; };
+		A100000B /* NarrativePrompts.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000B /* NarrativePrompts.swift */; };
+		A100000C /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = B100000C /* MLXLLM */; };
+		A100000D /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = B100000D /* MLXLMCommon */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -24,6 +34,10 @@
 		B1000005 /* SpeechService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechService.swift; sourceTree = "<group>"; };
 		B1000006 /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
 		B1000007 /* Chronicle.xcdatamodeld */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodeld; path = Chronicle.xcdatamodeld; sourceTree = "<group>"; };
+		B1000008 /* LLMService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMService.swift; sourceTree = "<group>"; };
+		B1000009 /* ToolDefinitions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolDefinitions.swift; sourceTree = "<group>"; };
+		B100000A /* ToolExecutor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolExecutor.swift; sourceTree = "<group>"; };
+		B100000B /* NarrativePrompts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NarrativePrompts.swift; sourceTree = "<group>"; };
 		B1000010 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B1000099 /* Chronicle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Chronicle.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -33,16 +47,30 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1BAE6B662FF0479400CD4475 /* Transformers in Frameworks */,
+				A100000C /* MLXLLM in Frameworks */,
+				A100000D /* MLXLMCommon in Frameworks */,
+				1BAE6B622FF0479400CD4475 /* Hub in Frameworks */,
+				1BAE6B5F2FF0472400CD4475 /* MLXHuggingFace in Frameworks */,
+				1BAE6B642FF0479400CD4475 /* Tokenizers in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		1BAE6B5D2FF0472400CD4475 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		D1000001 = {
 			isa = PBXGroup;
 			children = (
 				D1000002 /* Chronicle */,
+				1BAE6B5D2FF0472400CD4475 /* Frameworks */,
 				D1000099 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -98,6 +126,10 @@
 			children = (
 				B1000004 /* AudioRecorderService.swift */,
 				B1000005 /* SpeechService.swift */,
+				B1000008 /* LLMService.swift */,
+				B1000009 /* ToolDefinitions.swift */,
+				B100000A /* ToolExecutor.swift */,
+				B100000B /* NarrativePrompts.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -155,6 +187,8 @@
 			);
 			mainGroup = D1000001;
 			packageReferences = (
+				1BAE6B5C2FF043D200CD4475 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */,
+				1BAE6B602FF0479400CD4475 /* XCRemoteSwiftPackageReference "swift-transformers" */,
 			);
 			productRefGroup = D1000099 /* Products */;
 			projectDirPath = "";
@@ -187,6 +221,10 @@
 				A1000005 /* SpeechService.swift in Sources */,
 				A1000006 /* PersistenceController.swift in Sources */,
 				A1000007 /* Chronicle.xcdatamodeld in Sources */,
+				A1000008 /* LLMService.swift in Sources */,
+				A1000009 /* ToolDefinitions.swift in Sources */,
+				A100000A /* ToolExecutor.swift in Sources */,
+				A100000B /* NarrativePrompts.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -216,6 +254,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
+				SWIFT_OBJC_INTEROP_MODE = objcxx;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
@@ -237,6 +276,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OBJC_INTEROP_MODE = objcxx;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -324,6 +364,57 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		1BAE6B5C2FF043D200CD4475 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ml-explore/mlx-swift-lm";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.31.3;
+			};
+		};
+		1BAE6B602FF0479400CD4475 /* XCRemoteSwiftPackageReference "swift-transformers" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/huggingface/swift-transformers";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.3.3;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		1BAE6B5E2FF0472400CD4475 /* MLXHuggingFace */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1BAE6B5C2FF043D200CD4475 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXHuggingFace;
+		};
+		1BAE6B612FF0479400CD4475 /* Hub */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1BAE6B602FF0479400CD4475 /* XCRemoteSwiftPackageReference "swift-transformers" */;
+			productName = Hub;
+		};
+		1BAE6B632FF0479400CD4475 /* Tokenizers */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1BAE6B602FF0479400CD4475 /* XCRemoteSwiftPackageReference "swift-transformers" */;
+			productName = Tokenizers;
+		};
+		1BAE6B652FF0479400CD4475 /* Transformers */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1BAE6B602FF0479400CD4475 /* XCRemoteSwiftPackageReference "swift-transformers" */;
+			productName = Transformers;
+		};
+		B100000C /* MLXLLM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1BAE6B5C2FF043D200CD4475 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXLLM;
+		};
+		B100000D /* MLXLMCommon */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1BAE6B5C2FF043D200CD4475 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXLMCommon;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = E1000099 /* Project object */;
 }

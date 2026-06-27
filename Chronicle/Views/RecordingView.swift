@@ -3,6 +3,7 @@ import SwiftUI
 struct RecordingView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @StateObject private var vm = RecordingViewModel()
+    @ObservedObject var llmService: LLMService
 
     var body: some View {
         NavigationStack {
@@ -25,7 +26,25 @@ struct RecordingView: View {
             }
             .padding(.horizontal, 24)
             .navigationTitle("Chronicle")
-            .onAppear { vm.setup(context: viewContext) }
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    llmBadge
+                }
+            }
+            .onAppear { vm.setup(context: viewContext, llmService: llmService) }
+        }
+    }
+
+    // MARK: - LLM Badge
+
+    private var llmBadge: some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(llmService.isLoaded ? .green : .orange)
+                .frame(width: 8, height: 8)
+            Text(llmService.isLoaded ? "LLM" : "Chargement…")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -76,7 +95,7 @@ struct RecordingView: View {
                     RoundedRectangle(cornerRadius: 4)
                         .fill(.white)
                         .frame(width: 22, height: 22)
-                } else if vm.state == .transcribing {
+                } else if vm.state == .transcribing || vm.state == .processing {
                     ProgressView()
                         .tint(.white)
                 } else {
@@ -86,13 +105,13 @@ struct RecordingView: View {
                 }
             }
         }
-        .disabled(vm.state == .transcribing)
+        .disabled(vm.state == .transcribing || vm.state == .processing)
     }
 
     private var buttonColor: Color {
         switch vm.state {
         case .recording: return .red
-        case .transcribing: return .orange
+        case .transcribing, .processing: return .orange
         default: return .accentColor
         }
     }
@@ -107,7 +126,9 @@ struct RecordingView: View {
             case .recording:
                 Text("Enregistrement en cours…")
             case .transcribing:
-                Text("Transcription avec Whisper…")
+                Text(vm.llmStatus.isEmpty ? "Transcription…" : vm.llmStatus)
+            case .processing:
+                Text(vm.llmStatus.isEmpty ? "Analyse…" : vm.llmStatus)
             case .done:
                 Text("Entrée sauvegardée ✓")
             case .error(let msg):
@@ -122,17 +143,42 @@ struct RecordingView: View {
     // MARK: - Transcription
 
     private var transcriptionCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Transcription")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 12) {
+            if !vm.correctedTranscription.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Transcription corrigée")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    ScrollView {
+                        Text(vm.correctedTranscription)
+                            .font(.body)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .frame(maxHeight: 120)
+                }
 
-            ScrollView {
-                Text(vm.transcription)
-                    .font(.body)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                Divider()
+
+                DisclosureGroup("Transcription brute") {
+                    Text(vm.transcription)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .font(.caption)
+            } else {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Transcription")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    ScrollView {
+                        Text(vm.transcription)
+                            .font(.body)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .frame(maxHeight: 160)
+                }
             }
-            .frame(maxHeight: 160)
 
             Button("Nouvelle entrée") {
                 vm.reset()
@@ -146,6 +192,6 @@ struct RecordingView: View {
 }
 
 #Preview {
-    RecordingView()
+    RecordingView(llmService: LLMService())
         .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
 }

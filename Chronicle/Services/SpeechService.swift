@@ -44,8 +44,9 @@ final class SpeechService {
         }
 
         let request = SFSpeechURLRecognitionRequest(url: audioURL)
-        request.requiresOnDeviceRecognition = true
+        request.requiresOnDeviceRecognition = false
         request.shouldReportPartialResults = false
+        request.addsPunctuation = true
 
         return try await withCheckedThrowingContinuation { continuation in
             recognizer.recognitionTask(with: request) { result, error in
