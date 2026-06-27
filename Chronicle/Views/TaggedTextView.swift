@@ -5,43 +5,22 @@ struct TaggedTextView: View {
     let onTagTap: (TaggedSegment) -> Void
 
     var body: some View {
-        WrappingHStack(segments: taggedText.segments, onTagTap: onTagTap)
-    }
-}
-
-private struct WrappingHStack: View {
-    let segments: [TaggedSegment]
-    let onTagTap: (TaggedSegment) -> Void
-
-    var body: some View {
-        Text(buildAttributedString())
-            .font(.body)
-            .environment(\.openURL, OpenURLAction { url in
-                if let idx = Int(url.absoluteString.replacingOccurrences(of: "tag://", with: "")),
-                   idx < segments.count {
-                    onTagTap(segments[idx])
+        FlowLayout(spacing: 0) {
+            ForEach(taggedText.segments) { segment in
+                if let type = segment.entity {
+                    Button(action: { onTagTap(segment) }) {
+                        Text(segment.text)
+                            .font(.body.bold())
+                            .foregroundStyle(color(for: type))
+                            .underline()
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Text(segment.text)
+                        .font(.body)
                 }
-                return .handled
-            })
-    }
-
-    private func buildAttributedString() -> AttributedString {
-        var result = AttributedString()
-
-        for (index, segment) in segments.enumerated() {
-            var part = AttributedString(segment.text)
-
-            if let type = segment.entity {
-                part.foregroundColor = color(for: type)
-                part.font = .body.bold()
-                part.underlineStyle = .single
-                part.link = URL(string: "tag://\(index)")
             }
-
-            result.append(part)
         }
-
-        return result
     }
 
     private func color(for type: DetectedEntity.EntityType) -> Color {
@@ -52,6 +31,49 @@ private struct WrappingHStack: View {
         case .event: .yellow
         case .activity: .purple
         }
+    }
+}
+
+// Simple flow layout that wraps content
+struct FlowLayout: Layout {
+    var spacing: CGFloat = 0
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let result = arrange(proposal: proposal, subviews: subviews)
+        return result.size
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let result = arrange(proposal: proposal, subviews: subviews)
+        for (index, position) in result.positions.enumerated() {
+            subviews[index].place(at: CGPoint(x: bounds.minX + position.x, y: bounds.minY + position.y), proposal: .unspecified)
+        }
+    }
+
+    private func arrange(proposal: ProposedViewSize, subviews: Subviews) -> (size: CGSize, positions: [CGPoint]) {
+        let maxWidth = proposal.width ?? .infinity
+        var positions: [CGPoint] = []
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var rowHeight: CGFloat = 0
+        var maxX: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+
+            if x + size.width > maxWidth && x > 0 {
+                x = 0
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+
+            positions.append(CGPoint(x: x, y: y))
+            rowHeight = max(rowHeight, size.height)
+            x += size.width + spacing
+            maxX = max(maxX, x)
+        }
+
+        return (CGSize(width: maxX, height: y + rowHeight), positions)
     }
 }
 
@@ -104,15 +126,4 @@ struct TagEditorSheet: View {
             selectedType = segment.entity
         }
     }
-}
-
-#Preview {
-    let entities = [
-        DetectedEntity(text: "Dublin", type: .place, range: "à Dublin".range(of: "Dublin")!),
-    ]
-    let tagged = TaggedText(rawText: "Je suis allé à Dublin faire un trail.", entities: entities)
-    TaggedTextView(taggedText: tagged) { segment in
-        print("Tapped: \(segment.text)")
-    }
-    .padding()
 }

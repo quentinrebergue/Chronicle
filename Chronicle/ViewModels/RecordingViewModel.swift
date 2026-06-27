@@ -48,6 +48,7 @@ final class RecordingViewModel: ObservableObject {
         self.toolExecutor = ToolExecutor(context: context)
         self.preProcessor = PreProcessor(context: context)
         self.speech = SpeechService()
+        recorder.prepareSession()
 
         Task {
             do {

@@ -164,7 +164,7 @@ struct RecordingView: View {
                         editingSegment = segment
                         showingTagEditor = true
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
                 } else {
                     Text(vm.transcription)
                         .font(.body)

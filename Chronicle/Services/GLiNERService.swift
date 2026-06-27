@@ -76,6 +76,30 @@ final class GLiNERService {
 
     // MARK: - Public API
 
+    private func normalizeText(_ text: String) -> String {
+        var result = text
+        // Séparer la ponctuation SAUF les apostrophes (important pour le français : l'île, j'ai, c'est)
+        let punctuation: [Character] = [",", ".", "!", "?", ";", ":", "\"", "(", ")", "[", "]", "–", "—"]
+        for p in punctuation {
+            result = result.replacingOccurrences(of: String(p), with: " \(p) ")
+        }
+        while result.contains("  ") {
+            result = result.replacingOccurrences(of: "  ", with: " ")
+        }
+        return result.trimmingCharacters(in: .whitespaces)
+    }
+
+    private static let commonWords: Set<String> = [
+        "je", "tu", "il", "elle", "on", "nous", "vous", "ils", "elles",
+        "me", "te", "se", "le", "la", "les", "un", "une", "des",
+        "ce", "cette", "ces", "mon", "ma", "mes", "ton", "ta", "tes",
+        "son", "sa", "ses", "qui", "que", "quoi", "dont", "où",
+        "et", "ou", "mais", "donc", "car", "ni", "de", "du", "au", "aux",
+        "en", "à", "pour", "par", "sur", "dans", "avec", "sans",
+        "puis", "ensuite", "enfin", "aussi", "très", "plus", "tout",
+        "I", "he", "she", "we", "they", "the", "a", "an", "and", "or",
+    ]
+
     func extractEntities(from text: String, entityTypes: [String]? = nil) throws -> [GLiNEREntity] {
         guard let session, let tokenizer else {
             print("⚠️ GLiNER: session ou tokenizer non chargé")
@@ -83,9 +107,10 @@ final class GLiNERService {
         }
 
         let types = entityTypes ?? defaultEntityTypes
-        print("🔧 GLiNER preprocessing: \(text.prefix(80))…")
+        let normalizedText = normalizeText(text)
+        print("🔧 GLiNER preprocessing: \(normalizedText.prefix(80))…")
 
-        let inputs = prepareInputs(text: text, entities: types, tokenizer: tokenizer)
+        let inputs = prepareInputs(text: normalizedText, entities: types, tokenizer: tokenizer)
         print("🔧 GLiNER inputs: \(inputs.words.count) mots, \(inputs.seqLen) tokens, \(inputs.numSpans) spans")
 
         let logits: [Float]
@@ -105,8 +130,16 @@ final class GLiNERService {
             numWords: inputs.words.count
         )
 
-        print("🟢 GLiNER: \(entities.map { "[\($0.label):\($0.text) \(String(format: "%.0f", $0.score * 100))%]" })")
-        return entities
+        // Remap entity positions to original text
+        let remapped = entities.compactMap { entity -> GLiNEREntity? in
+            guard let range = text.range(of: entity.text, options: .caseInsensitive) else { return nil }
+            let start = text.distance(from: text.startIndex, to: range.lowerBound)
+            let end = text.distance(from: text.startIndex, to: range.upperBound)
+            return GLiNEREntity(text: entity.text, label: entity.label, score: entity.score, startIdx: start, endIdx: end)
+        }
+
+        print("🟢 GLiNER: \(remapped.map { "[\($0.label):\($0.text) \(String(format: "%.0f", $0.score * 100))%]" })")
+        return remapped
     }
 
     // MARK: - Word splitting
@@ -122,21 +155,14 @@ final class GLiNERService {
         var i = text.startIndex
 
         while i < text.endIndex {
-            while i < text.endIndex && (text[i].isWhitespace || text[i].isPunctuation) {
-                i = text.index(after: i)
-            }
+            while i < text.endIndex && text[i].isWhitespace { i = text.index(after: i) }
             guard i < text.endIndex else { break }
 
             let start = i
-            while i < text.endIndex && !text[i].isWhitespace && !text[i].isPunctuation {
-                i = text.index(after: i)
-            }
-
-            let word = String(text[start..<i])
-            guard !word.isEmpty else { continue }
+            while i < text.endIndex && !text[i].isWhitespace { i = text.index(after: i) }
 
             tokens.append(WordToken(
-                text: word,
+                text: String(text[start..<i]),
                 start: text.distance(from: text.startIndex, to: start),
                 end: text.distance(from: text.startIndex, to: i)
             ))
@@ -321,7 +347,7 @@ final class GLiNERService {
         entities: [String],
         text: String,
         numWords: Int,
-        threshold: Float = 0.4
+        threshold: Float = 0.35
     ) -> [GLiNEREntity] {
         let numEntities = entities.count
         var spans: [GLiNEREntity] = []
@@ -337,6 +363,10 @@ final class GLiNERService {
                     let prob = sigmoid(logits[logitIdx])
                     if prob >= threshold {
                         let spanText = words[startWord...endWord].map(\.text).joined(separator: " ")
+
+                        // Filtrer les mots communs (faux positifs)
+                        if spanText.count <= 3 && Self.commonWords.contains(spanText.lowercased()) { continue }
+
                         spans.append(GLiNEREntity(
                             text: spanText,
                             label: entities[entityIdx],

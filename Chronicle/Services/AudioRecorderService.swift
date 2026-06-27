@@ -14,6 +14,15 @@ final class AudioRecorderService: NSObject, ObservableObject {
 
     var currentFileURL: URL? { recorder?.url }
 
+    func prepareSession() {
+        Task.detached(priority: .userInitiated) {
+            let session = AVAudioSession.sharedInstance()
+            try? session.setCategory(.record, mode: .default)
+            try? session.setActive(true)
+            print("🎤 Session audio prête")
+        }
+    }
+
     func startRecording() throws {
         let session = AVAudioSession.sharedInstance()
         try session.setCategory(.record, mode: .default)
