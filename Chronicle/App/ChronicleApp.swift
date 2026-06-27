@@ -7,7 +7,7 @@ struct ChronicleApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RecordingView(llmService: llmService)
+            MainTabView(llmService: llmService)
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 .task {
                     do {

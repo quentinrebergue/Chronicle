@@ -17,7 +17,9 @@ final class ToolExecutor {
                     try linkExistingPerson(name: entity.text, entry: entry)
                 case .place:
                     try linkExistingPlace(name: entity.text)
-                case .organization, .event, .activity:
+                case .event, .activity:
+                    try linkExistingEvent(name: entity.text, entry: entry)
+                case .organization:
                     break
                 }
             } else {
@@ -27,13 +29,22 @@ final class ToolExecutor {
                     try createPerson(args: ["name": entity.text], entry: entry)
                 case .place:
                     try createPlace(args: ["name": entity.text])
-                case .organization, .event, .activity:
+                case .event, .activity:
+                    try createEvent(args: ["title": entity.text], entry: entry)
+                case .organization:
                     break
                 }
             }
         }
         try viewContext.save()
         print("💾 Entités NLP sauvegardées: \(detected.map { "[\($0.type.rawValue):\($0.text)]" })")
+    }
+
+    private func linkExistingEvent(name: String, entry: EntreeVocale) throws {
+        let request = Evenement.fetchRequest()
+        request.predicate = NSPredicate(format: "titre ==[cd] %@", name)
+        guard let event = try viewContext.fetch(request).first else { return }
+        entry.addToEvenements(event)
     }
 
     private func linkExistingPerson(name: String, entry: EntreeVocale) throws {

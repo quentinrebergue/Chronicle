@@ -155,20 +155,31 @@ final class RecordingViewModel: ObservableObject {
                     return DetectedEntity(text: entity.text, type: type, range: startIdx..<endIdx)
                 }
 
-                print("🏷️ Entités détectées: \(detected.map { "[\($0.type.rawValue):\($0.text)]" })")
+                // Fusionner avec NLTagger
+                let nlpEntities = nlpService.detectEntities(in: rawText)
+                var merged = detected
+                for nlpEntity in nlpEntities {
+                    let overlaps = merged.contains { $0.range.overlaps(nlpEntity.range) }
+                    if !overlaps {
+                        merged.append(nlpEntity)
+                    }
+                }
+                merged.sort { $0.range.lowerBound < $1.range.lowerBound }
+
+                print("🏷️ Entités fusionnées: \(merged.map { "[\($0.type.rawValue):\($0.text)]" })")
 
                 // Créer les entités CoreData
                 let existing = preProcessor?.process(rawText: rawText).existingEntityNames ?? []
                 if let toolExecutor {
                     try toolExecutor.createEntitiesFromNLP(
-                        detected: detected.filter { $0.type == .person || $0.type == .place },
+                        detected: merged,
                         existing: existing,
                         for: entry
                     )
                 }
 
                 // Mettre à jour les tags
-                taggedText = TaggedText(rawText: rawText, entities: detected)
+                taggedText = TaggedText(rawText: rawText, entities: merged)
 
                 llmStatus = ""
                 state = .done

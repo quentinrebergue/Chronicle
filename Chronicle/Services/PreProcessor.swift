@@ -136,6 +136,9 @@ final class PreProcessor {
         if let themes = try? viewContext.fetch(Theme.fetchRequest()) {
             themes.compactMap(\.label).forEach { names.insert($0) }
         }
+        if let events = try? viewContext.fetch(Evenement.fetchRequest()) {
+            events.compactMap(\.titre).forEach { names.insert($0) }
+        }
 
         return names
     }
