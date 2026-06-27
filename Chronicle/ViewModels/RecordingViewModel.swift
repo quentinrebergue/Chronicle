@@ -43,18 +43,19 @@ final class RecordingViewModel: ObservableObject {
         self.viewContext = context
         self.llm = llmService
         self.toolExecutor = ToolExecutor(context: context)
-
-        do {
-            speech = try SpeechService()
-        } catch {
-            state = .error("Reconnaissance vocale indisponible")
-        }
+        self.speech = SpeechService()
 
         Task {
             guard let speech else { return }
             let authorized = await speech.requestAuthorization()
             if !authorized {
                 state = .error("Accès à la reconnaissance vocale refusé")
+                return
+            }
+            do {
+                try await speech.ensureModelReady()
+            } catch {
+                print("⚠️ Modèle speech: \(error)")
             }
         }
     }
@@ -106,7 +107,7 @@ final class RecordingViewModel: ObservableObject {
                 print("🎙️ Fichier audio: \(audioURL.lastPathComponent) — \(fileSize / 1024) KB — durée enregistrée: \(String(format: "%.1f", elapsedTime))s")
 
                 // Étape 1 : Transcription Apple Speech
-                guard let speech else { throw SpeechService.SpeechError.recognizerUnavailable }
+                guard let speech else { throw SpeechService.SpeechError.transcriptionFailed }
                 let rawText = try await speech.transcribe(audioURL: audioURL)
                 recorder.deactivateSession()
                 transcription = rawText
@@ -151,7 +152,7 @@ final class RecordingViewModel: ObservableObject {
 
     @discardableResult
     private func saveEntry(audioURL: URL, rawTranscription: String, correctedTranscription: String?) throws -> EntreeVocale {
-        guard let viewContext else { throw SpeechService.SpeechError.recognizerUnavailable }
+        guard let viewContext else { throw SpeechService.SpeechError.transcriptionFailed }
         let entry = EntreeVocale(context: viewContext)
         entry.id = UUID()
         entry.dateEnregistrement = Date()
