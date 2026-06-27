@@ -12,6 +12,7 @@ Package.resolved
 ## Models (too large for git)
 *.bin
 *.gguf
+*.onnx
 
 ## OS
 .DS_Store

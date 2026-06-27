@@ -37,6 +37,7 @@ final class RecordingViewModel: ObservableObject {
     let recorder = AudioRecorderService()
     private var speech: SpeechService?
     private var llm: LLMService?
+    private var gliner = GLiNERService()
     private var toolExecutor: ToolExecutor?
     private var preProcessor: PreProcessor?
     private var viewContext: NSManagedObjectContext?
@@ -47,6 +48,14 @@ final class RecordingViewModel: ObservableObject {
         self.toolExecutor = ToolExecutor(context: context)
         self.preProcessor = PreProcessor(context: context)
         self.speech = SpeechService()
+
+        Task {
+            do {
+                try await gliner.load()
+            } catch {
+                print("⚠️ GLiNER: \(error)")
+            }
+        }
 
         Task {
             guard let speech else { return }
@@ -123,65 +132,47 @@ final class RecordingViewModel: ObservableObject {
                     correctedTranscription: nil
                 )
 
-                // Étape 3 : NLTagger (instantané) pour les tags rapides
+                // Étape 3 : GLiNER NER (zero-shot, on-device)
                 state = .processing
-                llmStatus = "Analyse rapide…"
-                let nlpEntities = nlpService.detectEntities(in: rawText)
-                taggedText = TaggedText(rawText: rawText, entities: nlpEntities)
+                llmStatus = "Extraction des entités…"
 
-                // Étape 4 : LLM NER (extraction d'entités enrichie)
-                if let llm {
-                    llmStatus = "Chargement du modèle…"
-                    try await llm.loadModel()
-                    llmStatus = "Extraction des entités…"
-                    let llmEntities = try await llm.extractEntities(from: rawText)
-                    print("🤖 LLM entités: \(llmEntities.map { "[\($0.type.rawValue):\($0.name)]" })")
+                let glinerEntities = try gliner.extractEntities(from: rawText)
 
-                    // Convertir en DetectedEntity
-                    let llmDetected = llmEntities.compactMap { entity -> DetectedEntity? in
-                        guard let range = entity.rangeInSource else { return nil }
-                        let type: DetectedEntity.EntityType = switch entity.type {
-                        case .person: .person
-                        case .place: .place
-                        case .event: .event
-                        case .activity: .activity
-                        }
-                        return DetectedEntity(text: entity.name, type: type, range: range)
+                // Convertir GLiNER entities en DetectedEntity
+                let detected: [DetectedEntity] = glinerEntities.compactMap { entity in
+                    let startIdx = rawText.index(rawText.startIndex, offsetBy: entity.startIdx, limitedBy: rawText.endIndex) ?? rawText.startIndex
+                    let endIdx = rawText.index(rawText.startIndex, offsetBy: entity.endIdx, limitedBy: rawText.endIndex) ?? rawText.endIndex
+
+                    let type: DetectedEntity.EntityType = switch entity.label {
+                    case "person": .person
+                    case "location": .place
+                    case "event": .event
+                    case "activity": .activity
+                    default: .organization
                     }
 
-                    // Fusionner NLTagger + LLM (dédupliquer par range)
-                    var merged = nlpEntities
-                    for llmEntity in llmDetected {
-                        let overlaps = merged.contains { existing in
-                            existing.range.overlaps(llmEntity.range)
-                        }
-                        if !overlaps {
-                            merged.append(llmEntity)
-                        }
-                    }
-                    merged.sort { $0.range.lowerBound < $1.range.lowerBound }
-                    print("🏷️ Entités fusionnées: \(merged.map { "[\($0.type.rawValue):\($0.text)]" })")
-
-                    // Créer les entités CoreData
-                    let existing = preProcessor?.process(rawText: rawText).existingEntityNames ?? []
-                    if let toolExecutor {
-                        try toolExecutor.createEntitiesFromNLP(
-                            detected: merged.filter { $0.type == .person || $0.type == .place },
-                            existing: existing,
-                            for: entry
-                        )
-                    }
-
-                    // Mettre à jour les tags avec les entités fusionnées
-                    taggedText = TaggedText(rawText: rawText, entities: merged)
-
-                    // Décharger le modèle pour libérer la RAM
-                    await llm.unloadModel()
+                    return DetectedEntity(text: entity.text, type: type, range: startIdx..<endIdx)
                 }
+
+                print("🏷️ Entités détectées: \(detected.map { "[\($0.type.rawValue):\($0.text)]" })")
+
+                // Créer les entités CoreData
+                let existing = preProcessor?.process(rawText: rawText).existingEntityNames ?? []
+                if let toolExecutor {
+                    try toolExecutor.createEntitiesFromNLP(
+                        detected: detected.filter { $0.type == .person || $0.type == .place },
+                        existing: existing,
+                        for: entry
+                    )
+                }
+
+                // Mettre à jour les tags
+                taggedText = TaggedText(rawText: rawText, entities: detected)
 
                 llmStatus = ""
                 state = .done
             } catch {
+                print("❌ Erreur pipeline: \(error)")
                 state = .error("Erreur : \(error.localizedDescription)")
             }
         }

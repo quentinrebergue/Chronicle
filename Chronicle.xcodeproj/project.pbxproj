@@ -7,10 +7,21 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1B736E452FF0852C0088286D /* gliner_small.onnx in Resources */ = {isa = PBXBuildFile; fileRef = 1B736E442FF0852C0088286D /* gliner_small.onnx */; };
 		1BAE6B5F2FF0472400CD4475 /* MLXHuggingFace in Frameworks */ = {isa = PBXBuildFile; productRef = 1BAE6B5E2FF0472400CD4475 /* MLXHuggingFace */; };
 		1BAE6B622FF0479400CD4475 /* Hub in Frameworks */ = {isa = PBXBuildFile; productRef = 1BAE6B612FF0479400CD4475 /* Hub */; };
 		1BAE6B642FF0479400CD4475 /* Tokenizers in Frameworks */ = {isa = PBXBuildFile; productRef = 1BAE6B632FF0479400CD4475 /* Tokenizers */; };
 		1BAE6B662FF0479400CD4475 /* Transformers in Frameworks */ = {isa = PBXBuildFile; productRef = 1BAE6B652FF0479400CD4475 /* Transformers */; };
+		1BAE6B692FF0791200CD4475 /* onnxruntime in Frameworks */ = {isa = PBXBuildFile; productRef = 1BAE6B682FF0791200CD4475 /* onnxruntime */; };
+		1BAE6B6B2FF0791200CD4475 /* onnxruntime_extensions in Frameworks */ = {isa = PBXBuildFile; productRef = 1BAE6B6A2FF0791200CD4475 /* onnxruntime_extensions */; };
+		1BAE6B6D2FF0792600CD4475 /* onnxruntime in Frameworks */ = {isa = PBXBuildFile; productRef = 1BAE6B6C2FF0792600CD4475 /* onnxruntime */; };
+		1BAE6B732FF0795900CD4475 /* tokenizer.json in Resources */ = {isa = PBXBuildFile; fileRef = 1BAE6B712FF0795900CD4475 /* tokenizer.json */; };
+		1BAE6B742FF0795900CD4475 /* gliner_config.json in Resources */ = {isa = PBXBuildFile; fileRef = 1BAE6B6F2FF0795900CD4475 /* gliner_config.json */; };
+		1BAE6B752FF0795900CD4475 /* config.json in Resources */ = {isa = PBXBuildFile; fileRef = 1BAE6B6E2FF0795900CD4475 /* config.json */; };
+		1BAE6B762FF0795900CD4475 /* model_uint8.onnx in Resources */ = {isa = PBXBuildFile; fileRef = 1BAE6B702FF0795900CD4475 /* model_uint8.onnx */; };
+		1BAE6B782FF07AEC00CD4475 /* tokenizer_config.json in Resources */ = {isa = PBXBuildFile; fileRef = 1BAE6B772FF07AEC00CD4475 /* tokenizer_config.json */; };
+		1BAE6B7A2FF07BCD00CD4475 /* added_tokens.json in Resources */ = {isa = PBXBuildFile; fileRef = 1BAE6B792FF07BCD00CD4475 /* added_tokens.json */; };
+		1BAE6B7C2FF07BDA00CD4475 /* special_tokens_map.json in Resources */ = {isa = PBXBuildFile; fileRef = 1BAE6B7B2FF07BDA00CD4475 /* special_tokens_map.json */; };
 		A1000001 /* ChronicleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000001 /* ChronicleApp.swift */; };
 		A1000002 /* RecordingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000002 /* RecordingView.swift */; };
 		A1000003 /* RecordingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000003 /* RecordingViewModel.swift */; };
@@ -22,15 +33,24 @@
 		A1000009 /* ToolDefinitions.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000009 /* ToolDefinitions.swift */; };
 		A100000A /* ToolExecutor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000A /* ToolExecutor.swift */; };
 		A100000B /* NarrativePrompts.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000B /* NarrativePrompts.swift */; };
+		A100000C /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = B100000C /* MLXLLM */; };
+		A100000D /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = B100000D /* MLXLMCommon */; };
 		A100000F /* NLPService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000F /* NLPService.swift */; };
 		A1000010 /* PreProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000010F /* PreProcessor.swift */; };
 		A1000011 /* TaggedText.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000011 /* TaggedText.swift */; };
 		A1000012 /* TaggedTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000012 /* TaggedTextView.swift */; };
-		A100000C /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = B100000C /* MLXLLM */; };
-		A100000D /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = B100000D /* MLXLMCommon */; };
+		A1000013 /* GLiNERService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000013 /* GLiNERService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		1B736E442FF0852C0088286D /* gliner_small.onnx */ = {isa = PBXFileReference; lastKnownFileType = file; path = gliner_small.onnx; sourceTree = "<group>"; };
+		1BAE6B6E2FF0795900CD4475 /* config.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = config.json; sourceTree = "<group>"; };
+		1BAE6B6F2FF0795900CD4475 /* gliner_config.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = gliner_config.json; sourceTree = "<group>"; };
+		1BAE6B702FF0795900CD4475 /* model_uint8.onnx */ = {isa = PBXFileReference; lastKnownFileType = file; path = model_uint8.onnx; sourceTree = "<group>"; };
+		1BAE6B712FF0795900CD4475 /* tokenizer.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = tokenizer.json; sourceTree = "<group>"; };
+		1BAE6B772FF07AEC00CD4475 /* tokenizer_config.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = tokenizer_config.json; sourceTree = "<group>"; };
+		1BAE6B792FF07BCD00CD4475 /* added_tokens.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = added_tokens.json; sourceTree = "<group>"; };
+		1BAE6B7B2FF07BDA00CD4475 /* special_tokens_map.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = special_tokens_map.json; sourceTree = "<group>"; };
 		B1000001 /* ChronicleApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChronicleApp.swift; sourceTree = "<group>"; };
 		B1000002 /* RecordingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingView.swift; sourceTree = "<group>"; };
 		B1000003 /* RecordingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingViewModel.swift; sourceTree = "<group>"; };
@@ -43,10 +63,11 @@
 		B100000A /* ToolExecutor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolExecutor.swift; sourceTree = "<group>"; };
 		B100000B /* NarrativePrompts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NarrativePrompts.swift; sourceTree = "<group>"; };
 		B100000F /* NLPService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NLPService.swift; sourceTree = "<group>"; };
+		B1000010 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B1000010F /* PreProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreProcessor.swift; sourceTree = "<group>"; };
 		B1000011 /* TaggedText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaggedText.swift; sourceTree = "<group>"; };
 		B1000012 /* TaggedTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaggedTextView.swift; sourceTree = "<group>"; };
-		B1000010 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B1000013 /* GLiNERService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLiNERService.swift; sourceTree = "<group>"; };
 		B1000099 /* Chronicle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Chronicle.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -59,8 +80,11 @@
 				A100000C /* MLXLLM in Frameworks */,
 				A100000D /* MLXLMCommon in Frameworks */,
 				1BAE6B622FF0479400CD4475 /* Hub in Frameworks */,
+				1BAE6B6B2FF0791200CD4475 /* onnxruntime_extensions in Frameworks */,
 				1BAE6B5F2FF0472400CD4475 /* MLXHuggingFace in Frameworks */,
+				1BAE6B6D2FF0792600CD4475 /* onnxruntime in Frameworks */,
 				1BAE6B642FF0479400CD4475 /* Tokenizers in Frameworks */,
+				1BAE6B692FF0791200CD4475 /* onnxruntime in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -72,6 +96,21 @@
 			children = (
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		1BAE6B722FF0795900CD4475 /* GLiNER */ = {
+			isa = PBXGroup;
+			children = (
+				1B736E442FF0852C0088286D /* gliner_small.onnx */,
+				1BAE6B7B2FF07BDA00CD4475 /* special_tokens_map.json */,
+				1BAE6B792FF07BCD00CD4475 /* added_tokens.json */,
+				1BAE6B772FF07AEC00CD4475 /* tokenizer_config.json */,
+				1BAE6B6E2FF0795900CD4475 /* config.json */,
+				1BAE6B6F2FF0795900CD4475 /* gliner_config.json */,
+				1BAE6B702FF0795900CD4475 /* model_uint8.onnx */,
+				1BAE6B712FF0795900CD4475 /* tokenizer.json */,
+			);
+			path = GLiNER;
 			sourceTree = "<group>";
 		};
 		D1000001 = {
@@ -92,6 +131,7 @@
 				D1000006 /* Models */,
 				D1000007 /* Services */,
 				B1000007 /* Chronicle.xcdatamodeld */,
+				1BAE6B722FF0795900CD4475 /* GLiNER */,
 			);
 			path = Chronicle;
 			sourceTree = "<group>";
@@ -142,6 +182,7 @@
 				B100000B /* NarrativePrompts.swift */,
 				B100000F /* NLPService.swift */,
 				B1000010F /* PreProcessor.swift */,
+				B1000013 /* GLiNERService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -201,6 +242,7 @@
 			packageReferences = (
 				1BAE6B5C2FF043D200CD4475 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */,
 				1BAE6B602FF0479400CD4475 /* XCRemoteSwiftPackageReference "swift-transformers" */,
+				1BAE6B672FF0791200CD4475 /* XCRemoteSwiftPackageReference "onnxruntime-swift-package-manager" */,
 			);
 			productRefGroup = D1000099 /* Products */;
 			projectDirPath = "";
@@ -216,6 +258,14 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1BAE6B7A2FF07BCD00CD4475 /* added_tokens.json in Resources */,
+				1BAE6B732FF0795900CD4475 /* tokenizer.json in Resources */,
+				1BAE6B742FF0795900CD4475 /* gliner_config.json in Resources */,
+				1B736E452FF0852C0088286D /* gliner_small.onnx in Resources */,
+				1BAE6B782FF07AEC00CD4475 /* tokenizer_config.json in Resources */,
+				1BAE6B752FF0795900CD4475 /* config.json in Resources */,
+				1BAE6B7C2FF07BDA00CD4475 /* special_tokens_map.json in Resources */,
+				1BAE6B762FF0795900CD4475 /* model_uint8.onnx in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -241,6 +291,7 @@
 				A1000010 /* PreProcessor.swift in Sources */,
 				A1000011 /* TaggedText.swift in Sources */,
 				A1000012 /* TaggedTextView.swift in Sources */,
+				A1000013 /* GLiNERService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -397,6 +448,14 @@
 				minimumVersion = 1.3.3;
 			};
 		};
+		1BAE6B672FF0791200CD4475 /* XCRemoteSwiftPackageReference "onnxruntime-swift-package-manager" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/microsoft/onnxruntime-swift-package-manager";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.24.2;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -419,6 +478,21 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 1BAE6B602FF0479400CD4475 /* XCRemoteSwiftPackageReference "swift-transformers" */;
 			productName = Transformers;
+		};
+		1BAE6B682FF0791200CD4475 /* onnxruntime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1BAE6B672FF0791200CD4475 /* XCRemoteSwiftPackageReference "onnxruntime-swift-package-manager" */;
+			productName = onnxruntime;
+		};
+		1BAE6B6A2FF0791200CD4475 /* onnxruntime_extensions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1BAE6B672FF0791200CD4475 /* XCRemoteSwiftPackageReference "onnxruntime-swift-package-manager" */;
+			productName = onnxruntime_extensions;
+		};
+		1BAE6B6C2FF0792600CD4475 /* onnxruntime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1BAE6B672FF0791200CD4475 /* XCRemoteSwiftPackageReference "onnxruntime-swift-package-manager" */;
+			productName = onnxruntime;
 		};
 		B100000C /* MLXLLM */ = {
 			isa = XCSwiftPackageProductDependency;
