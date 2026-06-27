@@ -166,6 +166,15 @@ final class RecordingViewModel: ObservableObject {
                 }
                 merged.sort { $0.range.lowerBound < $1.range.lowerBound }
 
+                // Appliquer les corrections utilisateur sur les entités détectées
+                merged = merged.map { entity in
+                    if let corrected = CorrectionStore.shared.correctedName(for: entity.text) {
+                        print("🔄 Auto-correction: \(entity.text) → \(corrected)")
+                        return DetectedEntity(text: corrected, type: entity.type, range: entity.range)
+                    }
+                    return entity
+                }
+
                 print("🏷️ Entités fusionnées: \(merged.map { "[\($0.type.rawValue):\($0.text)]" })")
 
                 // Créer les entités CoreData
@@ -224,8 +233,9 @@ final class RecordingViewModel: ObservableObject {
     func handleTagEdit(segment: TaggedSegment, newText: String, newType: DetectedEntity.EntityType?) {
         guard let viewContext else { return }
 
-        // Si le texte a changé, mettre à jour l'entité dans CoreData
+        // Si le texte a changé, stocker la correction et mettre à jour CoreData
         if newText != segment.text, let type = newType {
+            CorrectionStore.shared.addCorrection(from: segment.text, to: newText)
             switch type {
             case .place:
                 // Renommer le lieu existant ou créer un nouveau
