@@ -4,15 +4,7 @@
 <dict>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Chronicle a besoin du micro pour enregistrer tes entrées vocales quotidiennes.</string>
-	<key>CFBundleName</key>
-	<string>Chronicle</string>
-	<key>CFBundleDisplayName</key>
-	<string>Chronicle</string>
-	<key>CFBundleIdentifier</key>
-	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-	<key>CFBundleVersion</key>
-	<string>1</string>
-	<key>CFBundleShortVersionString</key>
-	<string>0.1.0</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Chronicle utilise la reconnaissance vocale pour transcrire tes enregistrements.</string>
 </dict>
 </plist>

@@ -11,7 +11,7 @@
 		A1000002 /* RecordingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000002 /* RecordingView.swift */; };
 		A1000003 /* RecordingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000003 /* RecordingViewModel.swift */; };
 		A1000004 /* AudioRecorderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000004 /* AudioRecorderService.swift */; };
-		A1000005 /* WhisperService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000005 /* WhisperService.swift */; };
+		A1000005 /* SpeechService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000005 /* SpeechService.swift */; };
 		A1000006 /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000006 /* PersistenceController.swift */; };
 		A1000007 /* Chronicle.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = B1000007 /* Chronicle.xcdatamodeld */; };
 /* End PBXBuildFile section */
@@ -21,11 +21,9 @@
 		B1000002 /* RecordingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingView.swift; sourceTree = "<group>"; };
 		B1000003 /* RecordingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingViewModel.swift; sourceTree = "<group>"; };
 		B1000004 /* AudioRecorderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRecorderService.swift; sourceTree = "<group>"; };
-		B1000005 /* WhisperService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhisperService.swift; sourceTree = "<group>"; };
+		B1000005 /* SpeechService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechService.swift; sourceTree = "<group>"; };
 		B1000006 /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
 		B1000007 /* Chronicle.xcdatamodeld */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodeld; path = Chronicle.xcdatamodeld; sourceTree = "<group>"; };
-		B1000008 /* Chronicle-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Chronicle-Bridging-Header.h"; sourceTree = "<group>"; };
-		B1000009 /* WhisperBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WhisperBridge.h; sourceTree = "<group>"; };
 		B1000010 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B1000099 /* Chronicle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Chronicle.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -58,7 +56,6 @@
 				D1000006 /* Models */,
 				D1000007 /* Services */,
 				B1000007 /* Chronicle.xcdatamodeld */,
-				B1000008 /* Chronicle-Bridging-Header.h */,
 			);
 			path = Chronicle;
 			sourceTree = "<group>";
@@ -100,8 +97,7 @@
 			isa = PBXGroup;
 			children = (
 				B1000004 /* AudioRecorderService.swift */,
-				B1000005 /* WhisperService.swift */,
-				B1000009 /* WhisperBridge.h */,
+				B1000005 /* SpeechService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -159,7 +155,6 @@
 			);
 			mainGroup = D1000001;
 			packageReferences = (
-				1BAE6B572FF0330500CD4475 /* XCRemoteSwiftPackageReference "whisper.cpp" */,
 			);
 			productRefGroup = D1000099 /* Products */;
 			projectDirPath = "";
@@ -189,7 +184,7 @@
 				A1000002 /* RecordingView.swift in Sources */,
 				A1000003 /* RecordingViewModel.swift in Sources */,
 				A1000004 /* AudioRecorderService.swift in Sources */,
-				A1000005 /* WhisperService.swift in Sources */,
+				A1000005 /* SpeechService.swift in Sources */,
 				A1000006 /* PersistenceController.swift in Sources */,
 				A1000007 /* Chronicle.xcdatamodeld in Sources */,
 			);
@@ -252,9 +247,12 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = C7DKBX3YUF;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Chronicle/App/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Chronicle;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Chronicle a besoin du micro pour enregistrer tes entrées vocales quotidiennes.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -265,10 +263,9 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.chronicle.app;
+				PRODUCT_BUNDLE_IDENTIFIER = com.quentinrebergue.otobio;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "Chronicle/Chronicle-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
@@ -280,9 +277,12 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = C7DKBX3YUF;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Chronicle/App/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Chronicle;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Chronicle a besoin du micro pour enregistrer tes entrées vocales quotidiennes.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -293,10 +293,9 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.chronicle.app;
+				PRODUCT_BUNDLE_IDENTIFIER = com.quentinrebergue.otobio;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "Chronicle/Chronicle-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
@@ -325,16 +324,6 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		1BAE6B572FF0330500CD4475 /* XCRemoteSwiftPackageReference "whisper.cpp" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/ggerganov/whisper.cpp.git";
-			requirement = {
-				branch = master;
-				kind = branch;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
 	};
 	rootObject = E1000099 /* Project object */;
 }

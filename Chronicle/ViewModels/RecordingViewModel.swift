@@ -18,15 +18,23 @@ final class RecordingViewModel: ObservableObject {
     }
 
     let recorder = AudioRecorderService()
-    private var whisper: WhisperService?
+    private var speech: SpeechService?
     private var viewContext: NSManagedObjectContext?
 
     func setup(context: NSManagedObjectContext) {
         self.viewContext = context
         do {
-            whisper = try WhisperService()
+            speech = try SpeechService()
         } catch {
-            state = .error("Impossible de charger le modèle Whisper")
+            state = .error("Reconnaissance vocale indisponible")
+        }
+
+        Task {
+            guard let speech else { return }
+            let authorized = await speech.requestAuthorization()
+            if !authorized {
+                state = .error("Accès à la reconnaissance vocale refusé")
+            }
         }
     }
 
@@ -69,8 +77,8 @@ final class RecordingViewModel: ObservableObject {
 
         Task {
             do {
-                guard let whisper else { throw WhisperService.WhisperError.initFailed }
-                let text = try await whisper.transcribe(audioURL: audioURL)
+                guard let speech else { throw SpeechService.SpeechError.recognizerUnavailable }
+                let text = try await speech.transcribe(audioURL: audioURL)
                 transcription = text
                 try saveEntry(audioURL: audioURL, transcription: text)
                 state = .done
