@@ -11,11 +11,11 @@ final class LLMService: ObservableObject {
     private var modelContainer: ModelContainer?
 
     enum Model: String, CaseIterable {
+        case qwen3_1_7B = "mlx-community/Qwen3-1.7B-4bit"
         case qwen3_4B = "mlx-community/Qwen3-4B-4bit"
-        case qwen3_8B = "mlx-community/Qwen3-8B-4bit"
     }
 
-    var currentModel: Model = .qwen3_4B
+    var currentModel: Model = .qwen3_1_7B
 
     enum LLMError: Error, LocalizedError {
         case modelNotLoaded
