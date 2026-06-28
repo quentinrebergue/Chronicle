@@ -193,18 +193,21 @@ final class RecordingViewModel: ObservableObject {
 
                 print("🏷️ Entités fusionnées: \(merged.map { "[\($0.type.rawValue):\($0.text)]" })")
 
-                // Créer les entités CoreData
+                // Créer les entités (personnes, lieux) dans CoreData
                 let existing = preProcessor?.process(rawText: cleanedText).existingEntityNames ?? []
                 if let toolExecutor {
                     try toolExecutor.createEntitiesFromNLP(
-                        detected: merged,
+                        detected: merged.filter { $0.type == .person || $0.type == .place },
                         existing: existing,
                         for: entry
                     )
                 }
 
-                // Extraire les relations (proximité par phrase)
+                // Extraire les relations et créer les événements structurés
                 let relations = relationExtractor.extractRelations(from: cleanedText, entities: merged)
+                if let toolExecutor, !relations.isEmpty {
+                    try toolExecutor.createStructuredEvents(from: relations, for: entry)
+                }
 
                 // Mettre à jour les tags
                 taggedText = TaggedText(rawText: cleanedText, entities: merged)

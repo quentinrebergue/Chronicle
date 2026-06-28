@@ -31,6 +31,7 @@
         <attribute name="importance" attributeType="Integer 16" defaultValueString="3" usesScalarValueType="YES"/>
         <attribute name="emotion" optional="YES" attributeType="String"/>
         <attribute name="lieu" optional="YES" attributeType="String"/>
+        <attribute name="descriptionTexte" optional="YES" attributeType="String"/>
         <relationship name="entree" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="EntreeVocale" inverseName="evenements" inverseEntity="EntreeVocale"/>
         <relationship name="personnes" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Personne" inverseName="evenements" inverseEntity="Personne"/>
     </entity>

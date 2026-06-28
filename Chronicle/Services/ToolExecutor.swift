@@ -40,6 +40,36 @@ final class ToolExecutor {
         print("💾 Entités NLP sauvegardées: \(detected.map { "[\($0.type.rawValue):\($0.text)]" })")
     }
 
+    func createStructuredEvents(from relations: [EntityRelation], for entry: EntreeVocale) throws {
+        for relation in relations {
+            let event = Evenement(context: viewContext)
+            event.id = UUID()
+            event.titre = relation.event
+            event.dateEvenement = entry.dateEnregistrement
+            event.lieu = relation.locations.first
+            event.descriptionTexte = relation.event
+
+            // Lier les personnes
+            for personName in relation.persons {
+                let request = Personne.fetchRequest()
+                request.predicate = NSPredicate(format: "nom ==[cd] %@", personName)
+                if let person = try viewContext.fetch(request).first {
+                    event.addToPersonnes(person)
+                }
+            }
+
+            entry.addToEvenements(event)
+        }
+
+        try viewContext.save()
+        print("💾 Événements structurés créés: \(relations.count)")
+        for r in relations {
+            let p = r.persons.isEmpty ? "—" : r.persons.joined(separator: ", ")
+            let l = r.locations.isEmpty ? "—" : r.locations.joined(separator: ", ")
+            print("   📌 \(r.event) | \(l) | \(p)")
+        }
+    }
+
     private func linkExistingEvent(name: String, entry: EntreeVocale) throws {
         let request = Evenement.fetchRequest()
         request.predicate = NSPredicate(format: "titre ==[cd] %@", name)
