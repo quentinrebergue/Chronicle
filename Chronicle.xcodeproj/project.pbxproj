@@ -55,6 +55,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		1B658F092FF164AF00B98D1A /* Chronicle.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Chronicle.entitlements; sourceTree = "<group>"; };
 		1B736E442FF0852C0088286D /* gliner_small.onnx */ = {isa = PBXFileReference; lastKnownFileType = file; path = gliner_small.onnx; sourceTree = "<group>"; };
 		1B736E462FF131170088286D /* gliner2_base.onnx */ = {isa = PBXFileReference; lastKnownFileType = text; path = gliner2_base.onnx; sourceTree = "<group>"; };
 		1B736E472FF131170088286D /* tokenizer2.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = tokenizer2.json; sourceTree = "<group>"; };
@@ -151,6 +152,7 @@
 		D1000002 /* Chronicle */ = {
 			isa = PBXGroup;
 			children = (
+				1B658F092FF164AF00B98D1A /* Chronicle.entitlements */,
 				D1000003 /* App */,
 				D1000004 /* Views */,
 				D1000005 /* ViewModels */,
@@ -400,6 +402,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Chronicle/Chronicle.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = C7DKBX3YUF;
@@ -430,6 +433,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Chronicle/Chronicle.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = C7DKBX3YUF;
