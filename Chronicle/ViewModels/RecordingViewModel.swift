@@ -38,6 +38,7 @@ final class RecordingViewModel: ObservableObject {
     private var speech: SpeechService?
     private var llm: LLMService?
     private var gliner = GLiNERService()
+    private let relationExtractor = RelationExtractor()
     private var toolExecutor: ToolExecutor?
     private var preProcessor: PreProcessor?
     private var viewContext: NSManagedObjectContext?
@@ -186,6 +187,9 @@ final class RecordingViewModel: ObservableObject {
                         for: entry
                     )
                 }
+
+                // Extraire les relations (proximité par phrase)
+                let relations = relationExtractor.extractRelations(from: rawText, entities: merged)
 
                 // Mettre à jour les tags
                 taggedText = TaggedText(rawText: rawText, entities: merged)
