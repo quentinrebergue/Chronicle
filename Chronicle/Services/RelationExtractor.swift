@@ -1,10 +1,11 @@
 import Foundation
 
 struct EntityRelation {
-    let event: String
-    let eventType: DetectedEntity.EntityType
-    let persons: [String]
-    let locations: [String]
+    var event: String
+    var eventType: DetectedEntity.EntityType
+    var persons: [String]
+    var locations: [String]
+    var description: String = ""
 }
 
 final class RelationExtractor {
@@ -36,12 +37,14 @@ final class RelationExtractor {
                 }
             } else {
                 // Lier chaque event aux personnes/lieux de la même phrase
+                let sentenceText = String(text[sentence.range]).trimmingCharacters(in: .whitespacesAndNewlines)
                 for event in events {
                     relations.append(EntityRelation(
                         event: event.text,
                         eventType: event.type,
                         persons: persons.map(\.text),
-                        locations: locations.map(\.text)
+                        locations: locations.map(\.text),
+                        description: sentenceText
                     ))
                 }
             }

@@ -112,10 +112,18 @@ struct EventCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             // Title
-            Text(relation.event.count > 80 ? String(relation.event.prefix(80)) + "…" : relation.event)
+            Text(relation.event)
                 .font(Otobio.bodyText(15))
                 .fontWeight(.medium)
                 .foregroundStyle(Otobio.marronFonce)
+
+            // Description (phrase source)
+            if !relation.description.isEmpty && relation.description != relation.event {
+                Text(relation.description.count > 120 ? String(relation.description.prefix(120)) + "…" : relation.description)
+                    .font(Otobio.label(13))
+                    .foregroundStyle(Otobio.marronNuit.opacity(0.7))
+                    .italic()
+            }
 
             // Structured details
             VStack(alignment: .leading, spacing: 6) {
@@ -228,7 +236,8 @@ struct EventEditorSheet: View {
                             event: title,
                             eventType: relation.eventType,
                             persons: persons.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty },
-                            locations: locations.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+                            locations: locations.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty },
+                            description: relation.description
                         )
                         dismiss()
                     }
