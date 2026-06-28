@@ -129,8 +129,12 @@ final class RecordingViewModel: ObservableObject {
                 guard let speech else { throw SpeechService.SpeechError.transcriptionFailed }
                 let rawText = try await speech.transcribe(audioURL: audioURL)
                 recorder.deactivateSession()
-                transcription = rawText
+                let cleanedText = TextCleaner.clean(rawText)
+                transcription = cleanedText
                 print("📝 Transcription brute: \(rawText)")
+                if cleanedText != rawText {
+                    print("📝 Transcription nettoyée: \(cleanedText)")
+                }
 
                 // Étape 2 : Sauvegarder l'entrée
                 let entry = try saveEntry(
@@ -143,12 +147,12 @@ final class RecordingViewModel: ObservableObject {
                 state = .processing
                 llmStatus = "Extraction des entités…"
 
-                let glinerEntities = try gliner.extractEntities(from: rawText)
+                let glinerEntities = try gliner.extractEntities(from: cleanedText)
 
                 // Convertir GLiNER entities en DetectedEntity
                 let detected: [DetectedEntity] = glinerEntities.compactMap { entity in
-                    let startIdx = rawText.index(rawText.startIndex, offsetBy: entity.startIdx, limitedBy: rawText.endIndex) ?? rawText.startIndex
-                    let endIdx = rawText.index(rawText.startIndex, offsetBy: entity.endIdx, limitedBy: rawText.endIndex) ?? rawText.endIndex
+                    let startIdx = cleanedText.index(cleanedText.startIndex, offsetBy: entity.startIdx, limitedBy: cleanedText.endIndex) ?? cleanedText.startIndex
+                    let endIdx = cleanedText.index(cleanedText.startIndex, offsetBy: entity.endIdx, limitedBy: cleanedText.endIndex) ?? cleanedText.endIndex
 
                     let type: DetectedEntity.EntityType = switch entity.label {
                     case "person": .person
@@ -162,7 +166,7 @@ final class RecordingViewModel: ObservableObject {
                 }
 
                 // Fusionner avec NLTagger
-                let nlpEntities = nlpService.detectEntities(in: rawText)
+                let nlpEntities = nlpService.detectEntities(in: cleanedText)
                 var merged = detected
                 for nlpEntity in nlpEntities {
                     let overlaps = merged.contains { $0.range.overlaps(nlpEntity.range) }
@@ -193,7 +197,7 @@ final class RecordingViewModel: ObservableObject {
                 print("🏷️ Entités fusionnées: \(merged.map { "[\($0.type.rawValue):\($0.text)]" })")
 
                 // Créer les entités CoreData
-                let existing = preProcessor?.process(rawText: rawText).existingEntityNames ?? []
+                let existing = preProcessor?.process(rawText: cleanedText).existingEntityNames ?? []
                 if let toolExecutor {
                     try toolExecutor.createEntitiesFromNLP(
                         detected: merged,
@@ -203,10 +207,10 @@ final class RecordingViewModel: ObservableObject {
                 }
 
                 // Extraire les relations (proximité par phrase)
-                let relations = relationExtractor.extractRelations(from: rawText, entities: merged)
+                let relations = relationExtractor.extractRelations(from: cleanedText, entities: merged)
 
                 // Mettre à jour les tags
-                taggedText = TaggedText(rawText: rawText, entities: merged)
+                taggedText = TaggedText(rawText: cleanedText, entities: merged)
 
                 llmStatus = ""
                 state = .done
