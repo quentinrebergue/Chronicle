@@ -5,73 +5,118 @@ struct TaggedTextView: View {
     let onTagTap: (TaggedSegment) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(buildAttributedString())
-                .font(Otobio.bodyText())
-                .frame(maxWidth: .infinity, alignment: .leading)
+        FlowText(segments: taggedText.segments, onTagTap: onTagTap)
+    }
+}
 
-            let entitySegments = taggedText.segments.filter { $0.entity != nil }
+// Inline flow text with entity chips
+private struct FlowText: View {
+    let segments: [TaggedSegment]
+    let onTagTap: (TaggedSegment) -> Void
+
+    var body: some View {
+        var result = Text("")
+
+        for segment in segments {
+            if segment.entity != nil {
+                // Can't make Text tappable inline, so we render all as Text
+                // with colored styling — chips below for interaction
+                result = result + Text(segment.text)
+                    .foregroundColor(Otobio.entityColor(for: segment.entity!))
+                    .bold()
+            } else {
+                result = result + Text(segment.text)
+                    .foregroundColor(Otobio.textPrimary)
+            }
+        }
+
+        return VStack(alignment: .leading, spacing: 10) {
+            result.font(Otobio.bodyText())
+
+            // Entity chips (tappable)
+            let entitySegments = segments.filter { $0.entity != nil }
             if !entitySegments.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 6) {
-                        ForEach(entitySegments) { segment in
-                            Button(action: { onTagTap(segment) }) {
-                                HStack(spacing: 4) {
-                                    Image(systemName: icon(for: segment.entity!))
-                                        .font(.system(size: 10))
-                                    Text(segment.text)
-                                        .font(Otobio.micro(12))
-                                }
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 5)
-                                .background(color(for: segment.entity!).opacity(0.12))
-                                .foregroundStyle(color(for: segment.entity!))
-                                .clipShape(Capsule())
-                                .overlay(Capsule().stroke(color(for: segment.entity!).opacity(0.3), lineWidth: 0.5))
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
+                entityChips(entitySegments)
+            }
+        }
+    }
+
+    private func entityChips(_ segments: [TaggedSegment]) -> some View {
+        FlowLayout(spacing: 6) {
+            ForEach(segments) { segment in
+                EntityChip(text: segment.text, type: segment.entity!) {
+                    onTagTap(segment)
                 }
             }
         }
     }
+}
 
-    private func buildAttributedString() -> AttributedString {
-        var result = AttributedString()
+// Reusable entity chip (used in tags AND event cards)
+struct EntityChip: View {
+    let text: String
+    let type: DetectedEntity.EntityType
+    var action: (() -> Void)? = nil
 
-        for segment in taggedText.segments {
-            var part = AttributedString(segment.text)
-            if let type = segment.entity {
-                part.foregroundColor = color(for: type)
-                part.font = Otobio.bodyText().bold()
-            } else {
-                part.foregroundColor = Otobio.marronNuit
+    var body: some View {
+        let color = Otobio.entityColor(for: type)
+        let icon = Otobio.entityIcon(for: type)
+
+        Button(action: { action?() }) {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 9))
+                Text(text)
+                    .font(Otobio.micro(12))
             }
-            result.append(part)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(color.opacity(0.12))
+            .foregroundStyle(color)
+            .clipShape(Capsule())
         }
+        .buttonStyle(.plain)
+        .disabled(action == nil)
+    }
+}
 
-        return result
+// Flow layout
+struct FlowLayout: Layout {
+    var spacing: CGFloat = 6
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        arrange(proposal: proposal, subviews: subviews).size
     }
 
-    private func color(for type: DetectedEntity.EntityType) -> Color {
-        switch type {
-        case .place: Otobio.entityPlace
-        case .person: Otobio.entityPerson
-        case .organization: Otobio.accent
-        case .event: Otobio.entityEvent
-        case .activity: Otobio.entityActivity
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let result = arrange(proposal: proposal, subviews: subviews)
+        for (index, position) in result.positions.enumerated() {
+            subviews[index].place(at: CGPoint(x: bounds.minX + position.x, y: bounds.minY + position.y), proposal: .unspecified)
         }
     }
 
-    private func icon(for type: DetectedEntity.EntityType) -> String {
-        switch type {
-        case .place: "mappin"
-        case .person: "person"
-        case .organization: "building.2"
-        case .event: "star"
-        case .activity: "figure.run"
+    private func arrange(proposal: ProposedViewSize, subviews: Subviews) -> (size: CGSize, positions: [CGPoint]) {
+        let maxWidth = proposal.width ?? .infinity
+        var positions: [CGPoint] = []
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var rowHeight: CGFloat = 0
+        var maxX: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x + size.width > maxWidth && x > 0 {
+                x = 0
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+            positions.append(CGPoint(x: x, y: y))
+            rowHeight = max(rowHeight, size.height)
+            x += size.width + spacing
+            maxX = max(maxX, x)
         }
+
+        return (CGSize(width: maxX, height: y + rowHeight), positions)
     }
 }
 
@@ -85,24 +130,29 @@ struct TagEditorSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Texte") {
-                    TextField("Nom", text: $editedText)
-                        .autocorrectionDisabled()
-                }
-
-                Section("Type d'entité") {
-                    Picker("Type", selection: $selectedType) {
-                        Text("Lieu").tag(DetectedEntity.EntityType?.some(.place))
-                        Text("Personne").tag(DetectedEntity.EntityType?.some(.person))
-                        Text("Événement").tag(DetectedEntity.EntityType?.some(.event))
-                        Text("Activité").tag(DetectedEntity.EntityType?.some(.activity))
-                        Text("Supprimer le tag").tag(DetectedEntity.EntityType?.none)
+            VStack(spacing: 0) {
+                Form {
+                    Section {
+                        TextField("Nom", text: $editedText)
+                            .autocorrectionDisabled()
                     }
-                    .pickerStyle(.inline)
-                    .labelsHidden()
+
+                    Section {
+                        Picker("Type", selection: $selectedType) {
+                            Text("Lieu").tag(DetectedEntity.EntityType?.some(.place))
+                            Text("Personne").tag(DetectedEntity.EntityType?.some(.person))
+                            Text("Événement").tag(DetectedEntity.EntityType?.some(.event))
+                            Text("Activité").tag(DetectedEntity.EntityType?.some(.activity))
+                            Text("Supprimer").tag(DetectedEntity.EntityType?.none)
+                        }
+                        .pickerStyle(.inline)
+                        .labelsHidden()
+                    }
                 }
+                .scrollContentBackground(.hidden)
+                .background(Otobio.background)
             }
+            .background(Otobio.background)
             .navigationTitle("Modifier")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -113,8 +163,7 @@ struct TagEditorSheet: View {
                     Button("OK") {
                         onSave(editedText, selectedType)
                         isPresented = false
-                    }
-                    .bold()
+                    }.bold()
                 }
             }
         }

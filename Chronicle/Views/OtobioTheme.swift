@@ -1,22 +1,30 @@
 import SwiftUI
 
 enum Otobio {
-    // MARK: - Colors
-    static let parchemin = Color(hex: "F5F0E8")
-    static let cremeAncien = Color(hex: "EDE5D4")
-    static let marronFonce = Color(hex: "3D1C0A")
-    static let marronChaud = Color(hex: "6B3520")
-    static let beigeDoré = Color(hex: "C4A882")
-    static let marronNuit = Color(hex: "1F0A02")
-    static let accent = Color(hex: "9C6B4A")
+    // MARK: - Adaptive Colors (light/dark)
 
-    // MARK: - Entity colors (warm palette)
+    // Backgrounds
+    static let background = Color("OtobioBackground")
+    static let cardBackground = Color("OtobioCard")
+
+    // Text
+    static let textPrimary = Color("OtobioTextPrimary")
+    static let textSecondary = Color("OtobioTextSecondary")
+    static let textTertiary = Color("OtobioTextTertiary")
+
+    // Brand accent (subtle)
+    static let brand = Color("OtobioBrand")
+    static let brandLight = Color("OtobioBrandLight")
+    static let separator = Color("OtobioSeparator")
+
+    // Entity colors (same in both modes)
     static let entityPerson = Color(hex: "6B3520")
     static let entityPlace = Color(hex: "3D6B5A")
     static let entityEvent = Color(hex: "8B6914")
     static let entityActivity = Color(hex: "5A3D6B")
 
     // MARK: - Fonts
+
     static func brandTitle(_ size: CGFloat = 28) -> Font {
         .custom("TimesNewRomanPS-ItalicMT", size: size)
     }
@@ -35,6 +43,28 @@ enum Otobio {
 
     static func micro(_ size: CGFloat = 11) -> Font {
         .system(size: size)
+    }
+
+    // MARK: - Entity helpers
+
+    static func entityColor(for type: DetectedEntity.EntityType) -> Color {
+        switch type {
+        case .place: entityPlace
+        case .person: entityPerson
+        case .event: entityEvent
+        case .activity: entityActivity
+        case .organization: textSecondary
+        }
+    }
+
+    static func entityIcon(for type: DetectedEntity.EntityType) -> String {
+        switch type {
+        case .place: "mappin"
+        case .person: "person"
+        case .event: "star"
+        case .activity: "figure.run"
+        case .organization: "building.2"
+        }
     }
 }
 

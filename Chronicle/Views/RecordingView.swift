@@ -9,7 +9,7 @@ struct RecordingView: View {
 
     var body: some View {
         ZStack {
-            Otobio.parchemin.ignoresSafeArea()
+            Otobio.background.ignoresSafeArea()
 
             if vm.state == .done {
                 resultScreen
@@ -34,92 +34,85 @@ struct RecordingView: View {
         VStack(spacing: 0) {
             Spacer()
 
-            // Brand
             Text("Otobio")
                 .font(Otobio.brandTitle(36))
-                .foregroundStyle(Otobio.marronFonce)
+                .foregroundStyle(Otobio.brand)
 
-            // Date
             Text(Date(), format: .dateTime.weekday(.wide).day().month(.wide).year())
                 .font(Otobio.micro())
-                .foregroundStyle(Otobio.accent)
+                .foregroundStyle(Otobio.textTertiary)
                 .padding(.top, 4)
 
-            // Separator
             Rectangle()
-                .fill(Otobio.beigeDoré)
-                .frame(width: 60, height: 1)
+                .fill(Otobio.separator)
+                .frame(width: 60, height: 0.5)
                 .padding(.vertical, 16)
 
-            // Question or status
-            Group {
-                switch vm.state {
-                case .idle:
-                    VStack(spacing: 6) {
-                        Text("Comment s'est passée")
-                            .font(Otobio.brandTitle(20))
-                        Text("ta journée ?")
-                            .font(Otobio.brandTitle(20))
-                    }
-                case .recording:
-                    VStack(spacing: 8) {
-                        Text("● \(vm.formattedTime)")
-                            .font(Otobio.label(14))
-                            .foregroundStyle(Otobio.marronChaud)
-                        Text("\(vm.remainingTime) restant")
-                            .font(Otobio.micro())
-                            .foregroundStyle(Otobio.accent)
-                    }
-                case .transcribing:
-                    Text("Transcription…")
-                        .font(Otobio.label(14))
-                case .processing:
-                    Text(vm.llmStatus.isEmpty ? "Analyse…" : vm.llmStatus)
-                        .font(Otobio.label(14))
-                case .done:
-                    EmptyView()
-                case .error(let msg):
-                    Text(msg)
-                        .font(Otobio.label(14))
-                        .foregroundStyle(.red)
-                }
-            }
-            .foregroundStyle(Otobio.marronFonce)
+            statusText
 
             Spacer()
 
-            // Waveform
             if vm.state == .recording {
-                waveformView
-                    .padding(.bottom, 20)
+                waveformView.padding(.bottom, 20)
             }
 
-            // Record button
-            recordButton
-                .padding(.bottom, 8)
+            recordButton.padding(.bottom, 8)
 
-            // Hint
             if vm.state == .idle {
                 Text("maintiens pour parler")
                     .font(Otobio.micro())
-                    .foregroundStyle(Otobio.beigeDoré)
+                    .foregroundStyle(Otobio.textTertiary)
             } else if vm.state == .transcribing || vm.state == .processing {
                 ProgressView()
-                    .tint(Otobio.marronChaud)
+                    .tint(Otobio.brand)
             }
 
-            Spacer()
-                .frame(height: 40)
+            Spacer().frame(height: 40)
         }
     }
 
-    // MARK: - Waveform
+    @ViewBuilder
+    private var statusText: some View {
+        switch vm.state {
+        case .idle:
+            VStack(spacing: 6) {
+                Text("Comment s'est passée")
+                    .font(Otobio.brandTitle(20))
+                Text("ta journée ?")
+                    .font(Otobio.brandTitle(20))
+            }
+            .foregroundStyle(Otobio.textPrimary)
+        case .recording:
+            VStack(spacing: 8) {
+                Text("● \(vm.formattedTime)")
+                    .font(Otobio.label(14))
+                    .foregroundStyle(Otobio.brand)
+                Text("\(vm.remainingTime) restant")
+                    .font(Otobio.micro())
+                    .foregroundStyle(Otobio.textTertiary)
+            }
+        case .transcribing:
+            Text("Transcription…")
+                .font(Otobio.label(14))
+                .foregroundStyle(Otobio.textSecondary)
+        case .processing:
+            Text(vm.llmStatus.isEmpty ? "Analyse…" : vm.llmStatus)
+                .font(Otobio.label(14))
+                .foregroundStyle(Otobio.textSecondary)
+        case .done:
+            EmptyView()
+        case .error(let msg):
+            Text(msg)
+                .font(Otobio.label(14))
+                .foregroundStyle(.red)
+        }
+    }
 
     private var waveformView: some View {
         HStack(spacing: 2) {
             ForEach(Array(vm.audioLevels.enumerated()), id: \.offset) { _, level in
                 RoundedRectangle(cornerRadius: 1.5)
-                    .fill(Otobio.marronChaud)
+                    .fill(Otobio.brand)
                     .frame(width: 3, height: max(3, CGFloat(level) * 50))
             }
         }
@@ -127,38 +120,32 @@ struct RecordingView: View {
         .animation(.easeOut(duration: 0.05), value: vm.audioLevels)
     }
 
-    // MARK: - Record Button (organic ring)
-
     private var recordButton: some View {
         Button(action: vm.toggleRecording) {
             ZStack {
-                // Outer ring
                 Circle()
                     .stroke(
-                        vm.state == .recording ? Otobio.marronChaud : Otobio.marronFonce,
+                        vm.state == .recording ? Otobio.brand.opacity(0.8) : Otobio.brand,
                         lineWidth: vm.state == .recording ? 6 : 4
                     )
                     .frame(width: 80, height: 80)
 
-                // Inner
                 if vm.state == .recording {
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(Otobio.marronChaud)
+                        .fill(Otobio.brand)
                         .frame(width: 24, height: 24)
                 } else if vm.state == .transcribing || vm.state == .processing {
                     ProgressView()
-                        .tint(Otobio.marronFonce)
+                        .tint(Otobio.brand)
                 } else {
                     Circle()
-                        .fill(Otobio.marronFonce)
+                        .fill(Otobio.brand)
                         .frame(width: 28, height: 28)
                 }
             }
         }
         .disabled(vm.state == .transcribing || vm.state == .processing)
     }
-
-    // MARK: - Result Screen
 
     private var resultScreen: some View {
         ResultView(

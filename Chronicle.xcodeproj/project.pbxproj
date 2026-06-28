@@ -405,7 +405,7 @@
 				DEVELOPMENT_TEAM = C7DKBX3YUF;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Chronicle/App/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Chronicle;
+				INFOPLIST_KEY_CFBundleDisplayName = Otobio;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Chronicle a besoin du micro pour enregistrer tes entrées vocales quotidiennes.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -435,7 +435,7 @@
 				DEVELOPMENT_TEAM = C7DKBX3YUF;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Chronicle/App/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Chronicle;
+				INFOPLIST_KEY_CFBundleDisplayName = Otobio;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Chronicle a besoin du micro pour enregistrer tes entrées vocales quotidiennes.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

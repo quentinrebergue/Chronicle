@@ -20,6 +20,6 @@ struct MainTabView: View {
                     Label("Entités", systemImage: "person.text.rectangle")
                 }
         }
-        .tint(Otobio.marronFonce)
+        .tint(Otobio.brand)
     }
 }

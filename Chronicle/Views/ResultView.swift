@@ -7,8 +7,6 @@ struct ResultView: View {
     let onTagTap: (TaggedSegment) -> Void
     let onNewEntry: () -> Void
 
-    @State private var editingRelationIndex: Int?
-
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -20,241 +18,153 @@ struct ResultView: View {
             }
             .padding(20)
         }
-        .background(Otobio.parchemin)
+        .background(Otobio.background)
     }
-
-    // MARK: - Header
 
     private var header: some View {
         HStack {
             Text("Entrée enregistrée")
                 .font(Otobio.brandTitle(24))
-                .foregroundStyle(Otobio.marronFonce)
+                .foregroundStyle(Otobio.brand)
             Spacer()
             Text(Date(), style: .time)
                 .font(Otobio.micro())
-                .foregroundStyle(Otobio.accent)
+                .foregroundStyle(Otobio.textTertiary)
         }
     }
 
     private var separator: some View {
         Rectangle()
-            .fill(Otobio.beigeDoré)
+            .fill(Otobio.separator)
             .frame(height: 0.5)
     }
-
-    // MARK: - Events
 
     private var eventsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Ce que j'ai compris")
                 .font(Otobio.sectionTitle(18))
-                .foregroundStyle(Otobio.marronFonce)
+                .foregroundStyle(Otobio.brand)
 
-            ForEach(Array(relations.enumerated()), id: \.offset) { index, relation in
-                EventCard(relation: relation, onEdit: {
-                    editingRelationIndex = index
-                }, onDelete: {
+            ForEach(Array(relations.enumerated()), id: \.offset) { index, _ in
+                EventCard(relation: $relations[index], onDelete: {
                     relations.remove(at: index)
-                })
+                }, onEntityTap: onTagTap)
             }
         }
-        .sheet(item: $editingRelationIndex) { index in
-            EventEditorSheet(relation: $relations[index])
-                .presentationDetents([.medium])
-        }
     }
-
-    // MARK: - Transcription
 
     private var transcriptionSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Transcription")
                 .font(Otobio.sectionTitle(18))
-                .foregroundStyle(Otobio.marronFonce)
+                .foregroundStyle(Otobio.brand)
 
             if let tagged = taggedText {
                 TaggedTextView(taggedText: tagged, onTagTap: onTagTap)
             } else {
                 Text(transcription)
                     .font(Otobio.bodyText())
-                    .foregroundStyle(Otobio.marronNuit)
+                    .foregroundStyle(Otobio.textPrimary)
             }
         }
         .padding(16)
-        .background(Otobio.cremeAncien)
+        .background(Otobio.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
-
-    // MARK: - New Entry
 
     private var newEntryButton: some View {
         Button(action: onNewEntry) {
             Text("Nouvelle entrée")
                 .font(Otobio.label(15))
-                .foregroundStyle(Otobio.parchemin)
+                .foregroundStyle(Otobio.background)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
-                .background(Otobio.marronFonce)
+                .background(Otobio.brand)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
         }
         .padding(.top, 8)
     }
 }
 
-// MARK: - Event Card
+// MARK: - Event Card (inline editable)
 
 struct EventCard: View {
-    let relation: EntityRelation
-    let onEdit: () -> Void
+    @Binding var relation: EntityRelation
     let onDelete: () -> Void
+    let onEntityTap: (TaggedSegment) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            // Title
-            Text(relation.event)
-                .font(Otobio.bodyText(15))
-                .fontWeight(.medium)
-                .foregroundStyle(Otobio.marronFonce)
-
-            // Description (phrase source)
-            if !relation.description.isEmpty && relation.description != relation.event {
-                Text(relation.description.count > 120 ? String(relation.description.prefix(120)) + "…" : relation.description)
-                    .font(Otobio.label(13))
-                    .foregroundStyle(Otobio.marronNuit.opacity(0.7))
-                    .italic()
-            }
-
-            // Structured details
-            VStack(alignment: .leading, spacing: 6) {
-                if !relation.locations.isEmpty {
-                    HStack(spacing: 6) {
-                        Text("Lieux")
-                            .font(Otobio.micro(11))
-                            .foregroundStyle(Otobio.accent)
-                            .frame(width: 65, alignment: .leading)
-                        Text(relation.locations.joined(separator: ", "))
-                            .font(Otobio.label(13))
-                            .foregroundStyle(Otobio.entityPlace)
-                    }
-                }
-
-                if !relation.persons.isEmpty {
-                    HStack(spacing: 6) {
-                        Text("Personnes")
-                            .font(Otobio.micro(11))
-                            .foregroundStyle(Otobio.accent)
-                            .frame(width: 65, alignment: .leading)
-                        Text(relation.persons.joined(separator: ", "))
-                            .font(Otobio.label(13))
-                            .foregroundStyle(Otobio.entityPerson)
-                    }
-                }
-            }
-
-            // Actions
+            // Delete button
             HStack {
                 Spacer()
-                Button(action: onEdit) {
-                    Text("Modifier")
-                        .font(Otobio.micro(11))
-                        .foregroundStyle(Otobio.marronChaud)
-                }
-                Text("·")
-                    .foregroundStyle(Otobio.beigeDoré)
                 Button(action: onDelete) {
-                    Text("Supprimer")
-                        .font(Otobio.micro(11))
-                        .foregroundStyle(Otobio.accent)
+                    Image(systemName: "xmark")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Otobio.textTertiary)
+                        .padding(6)
+                }
+            }
+            .padding(.bottom, -8)
+
+            // Description (editable)
+            if !relation.description.isEmpty {
+                Text(relation.description.count > 150 ? String(relation.description.prefix(150)) + "…" : relation.description)
+                    .font(Otobio.bodyText(14))
+                    .foregroundStyle(Otobio.textPrimary)
+            } else {
+                TextField("Description", text: $relation.event, axis: .vertical)
+                    .font(Otobio.bodyText(14))
+                    .foregroundStyle(Otobio.textPrimary)
+            }
+
+            // Lieux
+            HStack(spacing: 6) {
+                Text("Lieux")
+                    .font(Otobio.micro(11))
+                    .foregroundStyle(Otobio.textTertiary)
+                    .frame(width: 60, alignment: .leading)
+
+                if relation.locations.isEmpty {
+                    Text("—")
+                        .font(Otobio.label(13))
+                        .foregroundStyle(Otobio.textTertiary)
+                } else {
+                    FlowLayout(spacing: 4) {
+                        ForEach(relation.locations, id: \.self) { loc in
+                            EntityChip(text: loc, type: .place)
+                        }
+                    }
+                }
+            }
+
+            // Personnes
+            HStack(spacing: 6) {
+                Text("Personnes")
+                    .font(Otobio.micro(11))
+                    .foregroundStyle(Otobio.textTertiary)
+                    .frame(width: 60, alignment: .leading)
+
+                if relation.persons.isEmpty {
+                    Text("—")
+                        .font(Otobio.label(13))
+                        .foregroundStyle(Otobio.textTertiary)
+                } else {
+                    FlowLayout(spacing: 4) {
+                        ForEach(relation.persons, id: \.self) { person in
+                            EntityChip(text: person, type: .person)
+                        }
+                    }
                 }
             }
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Otobio.cremeAncien)
+        .background(Otobio.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 }
 
-// MARK: - Event Editor
-
-struct EventEditorSheet: View {
-    @Binding var relation: EntityRelation
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var title: String = ""
-    @State private var locations: String = ""
-    @State private var persons: String = ""
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                Form {
-                    Section {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Description")
-                                .font(Otobio.micro(11))
-                                .foregroundStyle(Otobio.accent)
-                            TextField("Événement", text: $title, axis: .vertical)
-                                .font(Otobio.bodyText())
-                                .lineLimit(3...)
-                        }
-                    }
-
-                    Section {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Lieux")
-                                .font(Otobio.micro(11))
-                                .foregroundStyle(Otobio.accent)
-                            TextField("ex: Dublin, Howth", text: $locations)
-                                .font(Otobio.bodyText())
-                        }
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Personnes")
-                                .font(Otobio.micro(11))
-                                .foregroundStyle(Otobio.accent)
-                            TextField("ex: Louise, Pierre", text: $persons)
-                                .font(Otobio.bodyText())
-                        }
-                    }
-                }
-                .scrollContentBackground(.hidden)
-                .background(Otobio.parchemin)
-            }
-            .background(Otobio.parchemin)
-            .navigationTitle("Modifier")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") { dismiss() }
-                        .foregroundStyle(Otobio.marronChaud)
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("OK") {
-                        relation = EntityRelation(
-                            event: title,
-                            eventType: relation.eventType,
-                            persons: persons.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty },
-                            locations: locations.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty },
-                            description: relation.description
-                        )
-                        dismiss()
-                    }
-                    .bold()
-                    .foregroundStyle(Otobio.marronFonce)
-                }
-            }
-        }
-        .onAppear {
-            title = relation.event
-            locations = relation.locations.joined(separator: ", ")
-            persons = relation.persons.joined(separator: ", ")
-        }
-    }
-}
-
-// Make Int identifiable for sheet
 extension Int: @retroactive Identifiable {
     public var id: Int { self }
 }
