@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		1B736E452FF0852C0088286D /* gliner_small.onnx in Resources */ = {isa = PBXBuildFile; fileRef = 1B736E442FF0852C0088286D /* gliner_small.onnx */; };
+		1B736E482FF131170088286D /* tokenizer2.json in Resources */ = {isa = PBXBuildFile; fileRef = 1B736E472FF131170088286D /* tokenizer2.json */; };
+		1B736E492FF131170088286D /* gliner2_base.onnx in Resources */ = {isa = PBXBuildFile; fileRef = 1B736E462FF131170088286D /* gliner2_base.onnx */; };
 		1BAE6B5F2FF0472400CD4475 /* MLXHuggingFace in Frameworks */ = {isa = PBXBuildFile; productRef = 1BAE6B5E2FF0472400CD4475 /* MLXHuggingFace */; };
 		1BAE6B622FF0479400CD4475 /* Hub in Frameworks */ = {isa = PBXBuildFile; productRef = 1BAE6B612FF0479400CD4475 /* Hub */; };
 		1BAE6B642FF0479400CD4475 /* Tokenizers in Frameworks */ = {isa = PBXBuildFile; productRef = 1BAE6B632FF0479400CD4475 /* Tokenizers */; };
@@ -52,6 +54,8 @@
 
 /* Begin PBXFileReference section */
 		1B736E442FF0852C0088286D /* gliner_small.onnx */ = {isa = PBXFileReference; lastKnownFileType = file; path = gliner_small.onnx; sourceTree = "<group>"; };
+		1B736E462FF131170088286D /* gliner2_base.onnx */ = {isa = PBXFileReference; lastKnownFileType = text; path = gliner2_base.onnx; sourceTree = "<group>"; };
+		1B736E472FF131170088286D /* tokenizer2.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = tokenizer2.json; sourceTree = "<group>"; };
 		1BAE6B6E2FF0795900CD4475 /* config.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = config.json; sourceTree = "<group>"; };
 		1BAE6B6F2FF0795900CD4475 /* gliner_config.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = gliner_config.json; sourceTree = "<group>"; };
 		1BAE6B702FF0795900CD4475 /* model_uint8.onnx */ = {isa = PBXFileReference; lastKnownFileType = file; path = model_uint8.onnx; sourceTree = "<group>"; };
@@ -74,7 +78,6 @@
 		B1000010 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B1000010F /* PreProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreProcessor.swift; sourceTree = "<group>"; };
 		B1000011 /* TaggedText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaggedText.swift; sourceTree = "<group>"; };
-		B100001B /* KnownEntities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnownEntities.swift; sourceTree = "<group>"; };
 		B1000012 /* TaggedTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaggedTextView.swift; sourceTree = "<group>"; };
 		B1000013 /* GLiNERService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLiNERService.swift; sourceTree = "<group>"; };
 		B1000014 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
@@ -84,6 +87,7 @@
 		B1000018 /* RelationExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelationExtractor.swift; sourceTree = "<group>"; };
 		B1000019 /* TextCleaner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextCleaner.swift; sourceTree = "<group>"; };
 		B100001A /* StructuredEntryBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StructuredEntryBuilder.swift; sourceTree = "<group>"; };
+		B100001B /* KnownEntities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnownEntities.swift; sourceTree = "<group>"; };
 		B1000099 /* Chronicle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Chronicle.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -117,6 +121,8 @@
 		1BAE6B722FF0795900CD4475 /* GLiNER */ = {
 			isa = PBXGroup;
 			children = (
+				1B736E462FF131170088286D /* gliner2_base.onnx */,
+				1B736E472FF131170088286D /* tokenizer2.json */,
 				1B736E442FF0852C0088286D /* gliner_small.onnx */,
 				1BAE6B7B2FF07BDA00CD4475 /* special_tokens_map.json */,
 				1BAE6B792FF07BCD00CD4475 /* added_tokens.json */,
@@ -283,6 +289,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				1BAE6B7A2FF07BCD00CD4475 /* added_tokens.json in Resources */,
+				1B736E482FF131170088286D /* tokenizer2.json in Resources */,
+				1B736E492FF131170088286D /* gliner2_base.onnx in Resources */,
 				1BAE6B732FF0795900CD4475 /* tokenizer.json in Resources */,
 				1BAE6B742FF0795900CD4475 /* gliner_config.json in Resources */,
 				1B736E452FF0852C0088286D /* gliner_small.onnx in Resources */,

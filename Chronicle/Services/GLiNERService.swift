@@ -1,6 +1,6 @@
 import Foundation
-import Tokenizers
 import OnnxRuntimeBindings
+import Tokenizers
 
 struct GLiNEREntity {
     let text: String
@@ -13,23 +13,21 @@ struct GLiNEREntity {
 final class GLiNERService {
     private var session: ORTSession?
     private var env: ORTEnv?
-    private var tokenizer: (any Tokenizer)?
-    private let maxWidth = 12
+    private var hfTokenizer: Tokenizers.Tokenizer?
+    private let maxWidth = 8
 
     let defaultEntityTypes = ["person", "location", "event", "activity"]
 
     enum GLiNERError: Error, LocalizedError {
         case modelNotFound
         case tokenizerNotFound
-        case sessionCreationFailed
         case inferenceFailed(String)
 
         var errorDescription: String? {
             switch self {
             case .modelNotFound: return "Modèle GLiNER introuvable"
             case .tokenizerNotFound: return "Tokenizer GLiNER introuvable"
-            case .sessionCreationFailed: return "Impossible de créer la session ONNX"
-            case .inferenceFailed(let msg): return "Inférence GLiNER échouée: \(msg)"
+            case .inferenceFailed(let msg): return "GLiNER: \(msg)"
             }
         }
     }
@@ -37,8 +35,12 @@ final class GLiNERService {
     // MARK: - Setup
 
     func load() async throws {
-        guard let modelPath = Bundle.main.path(forResource: "gliner_small", ofType: "onnx") else {
+        guard let modelPath = Bundle.main.path(forResource: "gliner2_base", ofType: "onnx") else {
             throw GLiNERError.modelNotFound
+        }
+
+        guard let tokenizerPath = Bundle.main.path(forResource: "tokenizer2", ofType: "json") else {
+            throw GLiNERError.tokenizerNotFound
         }
 
         env = try ORTEnv(loggingLevel: .warning)
@@ -46,39 +48,57 @@ final class GLiNERService {
         try options.setGraphOptimizationLevel(.all)
         session = try ORTSession(env: env!, modelPath: modelPath, sessionOptions: options)
 
-        // Create a temp directory with tokenizer files, patching the tokenizer_class
-        let tmpDir = FileManager.default.temporaryDirectory.appendingPathComponent("gliner-tokenizer")
+        // Create temp dir with tokenizer files for AutoTokenizer
+        let tmpDir = FileManager.default.temporaryDirectory.appendingPathComponent("gliner2-tokenizer")
         try? FileManager.default.removeItem(at: tmpDir)
         try FileManager.default.createDirectory(at: tmpDir, withIntermediateDirectories: true)
+        try FileManager.default.copyItem(
+            at: URL(fileURLWithPath: tokenizerPath),
+            to: tmpDir.appendingPathComponent("tokenizer.json")
+        )
+        // Create minimal tokenizer_config.json (Unigram/SentencePiece model)
+        let configJSON = #"{"tokenizer_class":"XLMRobertaTokenizer"}"#
+        try configJSON.write(to: tmpDir.appendingPathComponent("tokenizer_config.json"), atomically: true, encoding: .utf8)
 
-        let filesToCopy = ["tokenizer.json", "special_tokens_map.json", "added_tokens.json", "config.json"]
-        for file in filesToCopy {
-            let name = file.components(separatedBy: ".").first ?? file
-            let ext = file.components(separatedBy: ".").last ?? ""
-            if let src = Bundle.main.path(forResource: name, ofType: ext) {
-                try FileManager.default.copyItem(
-                    at: URL(fileURLWithPath: src),
-                    to: tmpDir.appendingPathComponent(file)
-                )
-            }
-        }
-
-        // Patch tokenizer_config.json to use a supported tokenizer class
-        if let src = Bundle.main.path(forResource: "tokenizer_config", ofType: "json") {
-            var content = try String(contentsOfFile: src, encoding: .utf8)
-            content = content.replacingOccurrences(of: "DebertaV2Tokenizer", with: "XLMRobertaTokenizer")
-            try content.write(to: tmpDir.appendingPathComponent("tokenizer_config.json"), atomically: true, encoding: .utf8)
-        }
-
-        tokenizer = try await AutoTokenizer.from(modelFolder: tmpDir)
-        print("✅ GLiNER chargé (modèle + tokenizer)")
+        hfTokenizer = try await AutoTokenizer.from(modelFolder: tmpDir)
+        print("✅ GLiNER2 chargé (modèle + tokenizer)")
     }
 
     // MARK: - Public API
 
+    func extractEntities(from text: String, entityTypes: [String]? = nil) throws -> [GLiNEREntity] {
+        guard let session, let hfTokenizer else {
+            print("⚠️ GLiNER2: session ou tokenizer non chargé")
+            return []
+        }
+
+        let types = entityTypes ?? defaultEntityTypes
+        let normalizedText = normalizeText(text)
+
+        let (feeds, words) = buildInputs(text: normalizedText, labels: types, tokenizer: hfTokenizer)
+        print("🔧 GLiNER2 inputs: \(words.count) mots, \(feeds.inputIds.count) tokens")
+
+        let scores = try runInference(feeds: feeds, numLabels: types.count, numWords: words.count)
+
+        // Use normalizedText for position mapping since words come from it
+        let entities = decodeEntities(scores: scores, words: words, labels: types, text: normalizedText)
+
+        // Remap entity text to original text
+        let remapped = entities.compactMap { entity -> GLiNEREntity? in
+            guard let range = text.range(of: entity.text.trimmingCharacters(in: .whitespaces), options: .caseInsensitive) else { return nil }
+            let start = text.distance(from: text.startIndex, to: range.lowerBound)
+            let end = text.distance(from: text.startIndex, to: range.upperBound)
+            return GLiNEREntity(text: String(text[range]), label: entity.label, score: entity.score, startIdx: start, endIdx: end)
+        }
+
+        print("🟢 GLiNER2: \(remapped.map { "[\($0.label):\($0.text) \(String(format: "%.0f", $0.score * 100))%]" })")
+        return remapped
+    }
+
+    // MARK: - Text normalization
+
     private func normalizeText(_ text: String) -> String {
         var result = text
-        // Séparer la ponctuation SAUF les apostrophes (important pour le français : l'île, j'ai, c'est)
         let punctuation: [Character] = [",", ".", "!", "?", ";", ":", "\"", "(", ")", "[", "]", "–", "—"]
         for p in punctuation {
             result = result.replacingOccurrences(of: String(p), with: " \(p) ")
@@ -87,59 +107,6 @@ final class GLiNERService {
             result = result.replacingOccurrences(of: "  ", with: " ")
         }
         return result.trimmingCharacters(in: .whitespaces)
-    }
-
-    private static let commonWords: Set<String> = [
-        "je", "tu", "il", "elle", "on", "nous", "vous", "ils", "elles",
-        "me", "te", "se", "le", "la", "les", "un", "une", "des",
-        "ce", "cette", "ces", "mon", "ma", "mes", "ton", "ta", "tes",
-        "son", "sa", "ses", "qui", "que", "quoi", "dont", "où",
-        "et", "ou", "mais", "donc", "car", "ni", "de", "du", "au", "aux",
-        "en", "à", "pour", "par", "sur", "dans", "avec", "sans",
-        "puis", "ensuite", "enfin", "aussi", "très", "plus", "tout",
-        "I", "he", "she", "we", "they", "the", "a", "an", "and", "or",
-    ]
-
-    func extractEntities(from text: String, entityTypes: [String]? = nil) throws -> [GLiNEREntity] {
-        guard let session, let tokenizer else {
-            print("⚠️ GLiNER: session ou tokenizer non chargé")
-            return []
-        }
-
-        let types = entityTypes ?? defaultEntityTypes
-        let normalizedText = normalizeText(text)
-        print("🔧 GLiNER preprocessing: \(normalizedText.prefix(80))…")
-
-        let inputs = prepareInputs(text: normalizedText, entities: types, tokenizer: tokenizer)
-        print("🔧 GLiNER inputs: \(inputs.words.count) mots, \(inputs.seqLen) tokens, \(inputs.numSpans) spans")
-
-        let logits: [Float]
-        do {
-            logits = try runInference(inputs: inputs)
-            print("🔧 GLiNER inference OK: \(logits.count) logits")
-        } catch {
-            print("❌ GLiNER inference échouée: \(error)")
-            throw error
-        }
-
-        let entities = decodeOutput(
-            logits: logits,
-            words: inputs.words,
-            entities: types,
-            text: text,
-            numWords: inputs.words.count
-        )
-
-        // Remap entity positions to original text
-        let remapped = entities.compactMap { entity -> GLiNEREntity? in
-            guard let range = text.range(of: entity.text, options: .caseInsensitive) else { return nil }
-            let start = text.distance(from: text.startIndex, to: range.lowerBound)
-            let end = text.distance(from: text.startIndex, to: range.upperBound)
-            return GLiNEREntity(text: entity.text, label: entity.label, score: entity.score, startIdx: start, endIdx: end)
-        }
-
-        print("🟢 GLiNER: \(remapped.map { "[\($0.label):\($0.text) \(String(format: "%.0f", $0.score * 100))%]" })")
-        return remapped
     }
 
     // MARK: - Word splitting
@@ -151,251 +118,237 @@ final class GLiNERService {
     }
 
     private func splitWords(_ text: String) -> [WordToken] {
+        // Match word characters (including apostrophes/hyphens within words) or single non-space chars
+        let pattern = #"\w+(?:[-']\w+)*|\S"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else { return [] }
+
+        let nsRange = NSRange(text.startIndex..<text.endIndex, in: text)
         var tokens: [WordToken] = []
-        var i = text.startIndex
 
-        while i < text.endIndex {
-            while i < text.endIndex && text[i].isWhitespace { i = text.index(after: i) }
-            guard i < text.endIndex else { break }
-
-            let start = i
-            while i < text.endIndex && !text[i].isWhitespace { i = text.index(after: i) }
-
-            tokens.append(WordToken(
-                text: String(text[start..<i]),
-                start: text.distance(from: text.startIndex, to: start),
-                end: text.distance(from: text.startIndex, to: i)
-            ))
+        regex.enumerateMatches(in: text, range: nsRange) { match, _, _ in
+            guard let match, let range = Range(match.range, in: text) else { return }
+            let word = String(text[range])
+            let start = text.distance(from: text.startIndex, to: range.lowerBound)
+            let end = text.distance(from: text.startIndex, to: range.upperBound)
+            tokens.append(WordToken(text: word, start: start, end: end))
         }
+
         return tokens
     }
 
-    // MARK: - Preprocessing
+    // MARK: - Build inputs
 
-    private struct ModelInputs {
+    private struct ModelFeeds {
         let inputIds: [Int64]
         let attentionMask: [Int64]
-        let wordsMask: [Int64]
-        let textLengths: [Int64]
+        let textPositions: [Int64]
+        let schemaPositions: [Int64]
         let spanIdx: [Int64]
-        let spanMask: [Int64]
-        let words: [WordToken]
-        let seqLen: Int
         let numSpans: Int
     }
 
-    private func prepareInputs(text: String, entities: [String], tokenizer: any Tokenizer) -> ModelInputs {
+    private func buildInputs(text: String, labels: [String], tokenizer: Tokenizers.Tokenizer) -> (ModelFeeds, [WordToken]) {
         let words = splitWords(text)
-        let textLength = words.count
+        let wordStrings = words.map { $0.text.lowercased() }
 
-        // Build prompt token IDs: <<ENT>> entity1 <<ENT>> entity2 <<SEP>> word1 word2 ...
-        let entTokenId = 128002  // <<ENT>>
-        let sepTokenId = 128003  // <<SEP>>
-
-        var partTokenIds: [[Int]] = []
-        for entity in entities {
-            partTokenIds.append([entTokenId])
-            partTokenIds.append(tokenizer.encode(text: entity, addSpecialTokens: false))
+        // Schema tokens: ( [P] entities ( [E] label1 [E] label2 ... ) ) [SEP_TEXT] word1 word2 ...
+        var schemaTokens = ["(", "[P]", "entities", "("]
+        for label in labels {
+            schemaTokens.append("[E]")
+            schemaTokens.append(contentsOf: label.split(separator: " ").map(String.init))
         }
-        partTokenIds.append([sepTokenId])
-        let promptLength = partTokenIds.count
+        schemaTokens.append(")")
+        schemaTokens.append(")")
 
-        for word in words {
-            partTokenIds.append(tokenizer.encode(text: word.text, addSpecialTokens: false))
-        }
+        let fullSequence = schemaTokens + ["[SEP_TEXT]"] + wordStrings
+        let numSchemaWords = schemaTokens.count + 1 // +1 for [SEP_TEXT]
 
-        // Debug: check token encoding
-        let debugLabels = entities.flatMap { ["<<ENT>>", $0] } + ["<<SEP>>"] + words.prefix(3).map(\.text)
-        for (i, label) in debugLabels.prefix(min(12, partTokenIds.count)).enumerated() {
-            print("🔧 Token '\(label)' → \(partTokenIds[i])")
-        }
+        // Special token IDs
+        let specialTokenIds: [String: Int] = [
+            "[P]": 128003, "[E]": 128005, "[SEP_TEXT]": 128002,
+            "(": 287, ")": 1263
+        ]
 
-        // Calculate total sequence length (BOS + tokens + EOS)
-        var seqLen = 2
-        for ids in partTokenIds { seqLen += ids.count }
+        // Tokenize each word separately and track word IDs
+        var tokenIds: [Int] = []
+        var wordIds: [Int] = []
 
-        // Build arrays
-        var inputIds = [Int64](repeating: 0, count: seqLen)
-        var attentionMask = [Int64](repeating: 0, count: seqLen)
-        var wordsMask = [Int64](repeating: 0, count: seqLen)
-
-        var idx = 0
-        inputIds[idx] = 1 // BOS
-        attentionMask[idx] = 1
-        idx += 1
-
-        var wordId: Int64 = 1
-        for (partIdx, ids) in partTokenIds.enumerated() {
-            let isTextPart = partIdx >= promptLength
-
-            if isTextPart {
-                wordsMask[idx] = wordId
-                wordId += 1
-            }
-
-            for id in ids {
-                inputIds[idx] = Int64(id)
-                attentionMask[idx] = 1
-                idx += 1
-            }
-        }
-        inputIds[idx] = 2 // EOS
-        attentionMask[idx] = 1
-
-        // Build spans
-        let numSpans = textLength * maxWidth
-        var spanIdx = [Int64](repeating: 0, count: numSpans * 2)
-        var spanMask = [Int64](repeating: 0, count: numSpans)
-
-        for i in 0..<textLength {
-            let m = min(maxWidth, textLength - i)
-            for j in 0..<m {
-                let sIdx = i * maxWidth + j
-                spanIdx[2 * sIdx] = Int64(i)
-                spanIdx[2 * sIdx + 1] = Int64(i + j)
-                spanMask[sIdx] = 1
+        for (wordIdx, word) in fullSequence.enumerated() {
+            if let specialId = specialTokenIds[word] {
+                tokenIds.append(specialId)
+                wordIds.append(wordIdx)
+            } else {
+                let ids = tokenizer.encode(text: word, addSpecialTokens: false)
+                for id in ids {
+                    tokenIds.append(id)
+                    wordIds.append(wordIdx)
+                }
             }
         }
 
-        return ModelInputs(
-            inputIds: inputIds, attentionMask: attentionMask, wordsMask: wordsMask,
-            textLengths: [Int64(textLength)], spanIdx: spanIdx, spanMask: spanMask,
-            words: words, seqLen: seqLen, numSpans: numSpans
+        let seqLen = tokenIds.count
+        let inputIds = tokenIds.map { Int64($0) }
+        let attentionMask = [Int64](repeating: 1, count: seqLen)
+
+        // text_positions: first token index for each text word
+        var textPositions: [Int64] = []
+        for wordIdx in 0..<wordStrings.count {
+            let fullWordIdx = numSchemaWords + wordIdx
+            var firstToken: Int? = nil
+            for (tokPos, wid) in wordIds.enumerated() {
+                if wid == fullWordIdx {
+                    firstToken = tokPos
+                    break
+                }
+            }
+            if firstToken == nil {
+                print("⚠️ GLiNER2: word '\(wordStrings[wordIdx])' not found in token mapping")
+            }
+            textPositions.append(Int64(firstToken ?? 0))
+        }
+
+        // schema_positions: [P] position, then each [E] position
+        var schemaPositions: [Int64] = []
+        for (i, tok) in schemaTokens.enumerated() {
+            if tok == "[P]" || tok == "[E]" {
+                for (tokPos, wid) in wordIds.enumerated() {
+                    if wid == i {
+                        schemaPositions.append(Int64(tokPos))
+                        break
+                    }
+                }
+            }
+        }
+
+        // span_idx
+        let numWords = wordStrings.count
+        var spans: [Int64] = []
+        for start in 0..<numWords {
+            for width in 1...maxWidth {
+                let end = start + width
+                if end <= numWords {
+                    spans.append(Int64(start))
+                    spans.append(Int64(end - 1))
+                } else {
+                    spans.append(0)
+                    spans.append(0)
+                }
+            }
+        }
+        let numSpans = numWords * maxWidth
+
+        let feeds = ModelFeeds(
+            inputIds: inputIds,
+            attentionMask: attentionMask,
+            textPositions: textPositions,
+            schemaPositions: schemaPositions,
+            spanIdx: spans,
+            numSpans: numSpans
         )
+
+        return (feeds, words)
     }
 
     // MARK: - ONNX Inference
 
-    private func runInference(inputs: ModelInputs) throws -> [Float] {
-        guard let session else { throw GLiNERError.sessionCreationFailed }
+    private func runInference(feeds: ModelFeeds, numLabels: Int, numWords: Int) throws -> [Float] {
+        guard let session else { throw GLiNERError.inferenceFailed("No session") }
 
-        let batchSize: Int64 = 1
-        let seqLen = Int64(inputs.seqLen)
-        let numSpans = Int64(inputs.numSpans)
+        let seqLen = Int64(feeds.inputIds.count)
+        let numSpans = Int64(feeds.numSpans)
 
-        let inputIdsTensor = try createTensor(inputs.inputIds, shape: [batchSize, seqLen])
-        let attMaskTensor = try createTensor(inputs.attentionMask, shape: [batchSize, seqLen])
-        let wordsMaskTensor = try createTensor(inputs.wordsMask, shape: [batchSize, seqLen])
-        let textLenTensor = try createTensor(inputs.textLengths, shape: [batchSize, 1])
-        let spanIdxTensor = try createTensor(inputs.spanIdx, shape: [batchSize, numSpans, 2])
-        let spanMaskTensor = try createTensor(inputs.spanMask, shape: [batchSize, numSpans])
+        let inputIdsTensor = try createTensor(feeds.inputIds, shape: [1, seqLen])
+        let attMaskTensor = try createTensor(feeds.attentionMask, shape: [1, seqLen])
+        let textPosTensor = try createTensor(feeds.textPositions, shape: [Int64(feeds.textPositions.count)])
+        let schemaPosTensor = try createTensor(feeds.schemaPositions, shape: [Int64(feeds.schemaPositions.count)])
+        let spanIdxTensor = try createTensor(feeds.spanIdx, shape: [1, numSpans, 2])
 
         let inputDict: [String: ORTValue] = [
             "input_ids": inputIdsTensor,
             "attention_mask": attMaskTensor,
-            "words_mask": wordsMaskTensor,
-            "text_lengths": textLenTensor,
+            "text_positions": textPosTensor,
+            "schema_positions": schemaPosTensor,
             "span_idx": spanIdxTensor,
-            "span_mask": spanMaskTensor
         ]
 
         let results = try session.run(
             withInputs: inputDict,
-            outputNames: Set(["logits"]),
+            outputNames: Set(["span_scores"]),
             runOptions: nil
         )
 
-        guard let logitsValue = results["logits"] else {
-            throw GLiNERError.inferenceFailed("No logits output")
+        guard let scoresValue = results["span_scores"] else {
+            throw GLiNERError.inferenceFailed("No span_scores output")
         }
 
-        let logitsInfo = try logitsValue.tensorTypeAndShapeInfo()
-        print("🔧 GLiNER logits shape: \(logitsInfo.shape)")
+        let info = try scoresValue.tensorTypeAndShapeInfo()
+        print("🔧 GLiNER2 output shape: \(info.shape)")
 
-        let logitsData = try logitsValue.tensorData() as Data
-        let floatCount = logitsData.count / MemoryLayout<Float>.size
-        print("🔧 GLiNER logits: \(floatCount) floats (\(logitsData.count) bytes)")
-
-        var logits = [Float](repeating: 0, count: floatCount)
-        logitsData.withUnsafeBytes { buffer in
-            let floatBuffer = buffer.bindMemory(to: Float.self)
-            for i in 0..<floatCount {
-                logits[i] = floatBuffer[i]
-            }
+        let scoresData = try scoresValue.tensorData() as Data
+        let floatCount = scoresData.count / MemoryLayout<Float>.size
+        var scores = [Float](repeating: 0, count: floatCount)
+        scoresData.withUnsafeBytes { buffer in
+            let src = buffer.bindMemory(to: Float.self)
+            for i in 0..<floatCount { scores[i] = src[i] }
         }
 
-        return logits
-    }
-
-    private func createBoolTensor(_ data: [Bool], shape: [Int64]) throws -> ORTValue {
-        let nsShape = shape.map { NSNumber(value: $0) }
-        var bytes = data.map { UInt8($0 ? 1 : 0) }
-        let tensorData = NSMutableData(bytes: &bytes, length: bytes.count)
-        return try ORTValue(
-            tensorData: tensorData,
-            elementType: .uInt8,
-            shape: nsShape
-        )
+        return scores
     }
 
     private func createTensor(_ data: [Int64], shape: [Int64]) throws -> ORTValue {
         let nsShape = shape.map { NSNumber(value: $0) }
         var mutableData = data
         let tensorData = NSMutableData(bytes: &mutableData, length: data.count * MemoryLayout<Int64>.size)
-        return try ORTValue(
-            tensorData: tensorData,
-            elementType: .int64,
-            shape: nsShape
-        )
+        return try ORTValue(tensorData: tensorData, elementType: .int64, shape: nsShape)
     }
 
     // MARK: - Post-processing
 
-    private func decodeOutput(
-        logits: [Float],
-        words: [WordToken],
-        entities: [String],
-        text: String,
-        numWords: Int,
-        threshold: Float = 0.35
-    ) -> [GLiNEREntity] {
-        let numEntities = entities.count
-        var spans: [GLiNEREntity] = []
+    private func decodeEntities(scores: [Float], words: [WordToken], labels: [String], text: String, threshold: Float = 0.5) -> [GLiNEREntity] {
+        // span_scores shape: (1, num_fields, num_words, max_width)
+        // Already squeezed to (num_fields, num_words, max_width) via scores[0]
+        let numFields = labels.count
+        let numWords = words.count
+        let mw = maxWidth
 
-        for startWord in 0..<numWords {
-            let m = min(maxWidth, numWords - startWord)
-            for spanWidth in 0..<m {
-                let endWord = startWord + spanWidth
-                for entityIdx in 0..<numEntities {
-                    let logitIdx = startWord * maxWidth * numEntities + spanWidth * numEntities + entityIdx
-                    guard logitIdx < logits.count else { continue }
+        var entities: [GLiNEREntity] = []
 
-                    let prob = sigmoid(logits[logitIdx])
-                    if prob >= threshold {
-                        let spanText = words[startWord...endWord].map(\.text).joined(separator: " ")
+        for fieldIdx in 0..<numFields {
+            for start in 0..<numWords {
+                for widthIdx in 0..<mw {
+                    let idx = fieldIdx * numWords * mw + start * mw + widthIdx
+                    guard idx < scores.count else { continue }
 
-                        // Filtrer les mots communs (faux positifs)
-                        let spanWords = spanText.lowercased().components(separatedBy: .whitespaces)
-                        if spanWords.allSatisfy({ Self.commonWords.contains($0) }) { continue }
-                        if spanText.count <= 3 && Self.commonWords.contains(spanText.lowercased()) { continue }
+                    let score = scores[idx]
+                    if score >= threshold {
+                        let end = start + widthIdx
+                        guard end < words.count else { continue }
 
-                        spans.append(GLiNEREntity(
-                            text: spanText,
-                            label: entities[entityIdx],
-                            score: prob,
-                            startIdx: words[startWord].start,
-                            endIdx: words[endWord].end
+                        // Remap to original text positions
+                        let charStart = words[start].start
+                        let charEnd = words[end].end
+                        let startStringIdx = text.index(text.startIndex, offsetBy: charStart, limitedBy: text.endIndex) ?? text.startIndex
+                        let endStringIdx = text.index(text.startIndex, offsetBy: charEnd, limitedBy: text.endIndex) ?? text.endIndex
+                        let entityText = String(text[startStringIdx..<endStringIdx])
+
+                        entities.append(GLiNEREntity(
+                            text: entityText, label: labels[fieldIdx],
+                            score: score, startIdx: charStart, endIdx: charEnd
                         ))
                     }
                 }
             }
         }
 
-        // Greedy non-overlapping selection (highest score first)
-        spans.sort { $0.score > $1.score }
+        // Greedy non-overlapping (highest score first)
+        entities.sort { $0.score > $1.score }
         var selected: [GLiNEREntity] = []
-        for span in spans {
-            let overlaps = selected.contains { existing in
-                !(span.endIdx <= existing.startIdx || span.startIdx >= existing.endIdx)
-            }
-            if !overlaps { selected.append(span) }
+        for e in entities {
+            let overlaps = selected.contains { !(e.endIdx <= $0.startIdx || e.startIdx >= $0.endIdx) }
+            if !overlaps { selected.append(e) }
         }
 
         selected.sort { $0.startIdx < $1.startIdx }
         return selected
-    }
-
-    private func sigmoid(_ x: Float) -> Float {
-        1.0 / (1.0 + exp(-x))
     }
 }
