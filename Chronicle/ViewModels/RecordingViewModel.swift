@@ -129,12 +129,9 @@ final class RecordingViewModel: ObservableObject {
                 guard let speech else { throw SpeechService.SpeechError.transcriptionFailed }
                 let rawText = try await speech.transcribe(audioURL: audioURL)
                 recorder.deactivateSession()
-                let cleanedText = TextCleaner.clean(rawText)
+                let cleanedText = rawText
                 transcription = cleanedText
-                print("📝 Transcription brute: \(rawText)")
-                if cleanedText != rawText {
-                    print("📝 Transcription nettoyée: \(cleanedText)")
-                }
+                print("📝 Transcription: \(cleanedText)")
 
                 // Étape 2 : Sauvegarder l'entrée
                 let entry = try saveEntry(
