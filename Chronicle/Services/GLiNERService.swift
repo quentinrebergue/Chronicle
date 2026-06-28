@@ -365,6 +365,8 @@ final class GLiNERService {
                         let spanText = words[startWord...endWord].map(\.text).joined(separator: " ")
 
                         // Filtrer les mots communs (faux positifs)
+                        let spanWords = spanText.lowercased().components(separatedBy: .whitespaces)
+                        if spanWords.allSatisfy({ Self.commonWords.contains($0) }) { continue }
                         if spanText.count <= 3 && Self.commonWords.contains(spanText.lowercased()) { continue }
 
                         spans.append(GLiNEREntity(

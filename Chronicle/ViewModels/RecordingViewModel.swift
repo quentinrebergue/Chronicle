@@ -43,7 +43,12 @@ final class RecordingViewModel: ObservableObject {
     private var preProcessor: PreProcessor?
     private var viewContext: NSManagedObjectContext?
 
+    private var isSetup = false
+
     func setup(context: NSManagedObjectContext, llmService: LLMService) {
+        guard !isSetup else { return }
+        isSetup = true
+
         self.viewContext = context
         self.llm = llmService
         self.toolExecutor = ToolExecutor(context: context)

@@ -59,26 +59,6 @@ final class PreProcessor {
             }
         }
 
-        // Also scan raw text for words that fuzzy-match known entities but weren't detected by NLTagger
-        let words = rawText.components(separatedBy: .whitespacesAndNewlines)
-        for word in words where word.count >= 3 {
-            let cleaned = word.trimmingCharacters(in: .punctuationCharacters)
-            if known.contains(cleaned) { continue }
-            if detected.contains(where: { $0.text.localizedCaseInsensitiveContains(cleaned) }) { continue }
-
-            for knownName in known {
-                let score = fuzzyScore(cleaned, knownName)
-                if score >= 0.75 {
-                    let type: DetectedEntity.EntityType = guessType(for: knownName) ?? .place
-                    corrections.append(SuggestedCorrection(
-                        original: cleaned,
-                        suggested: knownName,
-                        confidence: score,
-                        entityType: type
-                    ))
-                }
-            }
-        }
 
         return corrections
     }
