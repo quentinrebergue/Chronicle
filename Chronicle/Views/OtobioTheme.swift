@@ -1,23 +1,41 @@
 import SwiftUI
 
 enum Otobio {
-    // MARK: - Adaptive Colors (light/dark)
+    // MARK: - Adaptive Colors (programmatic light/dark)
 
-    // Backgrounds
-    static let background = Color("OtobioBackground")
-    static let cardBackground = Color("OtobioCard")
+    static var background: Color {
+        Color(light: .init(hex: "F5F0E8"), dark: .init(hex: "171310"))
+    }
 
-    // Text
-    static let textPrimary = Color("OtobioTextPrimary")
-    static let textSecondary = Color("OtobioTextSecondary")
-    static let textTertiary = Color("OtobioTextTertiary")
+    static var cardBackground: Color {
+        Color(light: .init(hex: "EFE7D6"), dark: .init(hex: "211C17"))
+    }
 
-    // Brand accent (subtle)
-    static let brand = Color("OtobioBrand")
-    static let brandLight = Color("OtobioBrandLight")
-    static let separator = Color("OtobioSeparator")
+    static var textPrimary: Color {
+        Color(light: .init(hex: "1E1914"), dark: .init(hex: "EBE5DB"))
+    }
 
-    // Entity colors (same in both modes)
+    static var textSecondary: Color {
+        Color(light: .init(hex: "6B5C4A"), dark: .init(hex: "9E9489"))
+    }
+
+    static var textTertiary: Color {
+        Color(light: .init(hex: "948573"), dark: .init(hex: "736B5F"))
+    }
+
+    static var brand: Color {
+        Color(light: .init(hex: "3D1C0A"), dark: .init(hex: "C79972"))
+    }
+
+    static var brandLight: Color {
+        Color(light: .init(hex: "C4A882"), dark: .init(hex: "594733"))
+    }
+
+    static var separator: Color {
+        Color(light: .init(hex: "C4A882"), dark: .init(hex: "383028"))
+    }
+
+    // Entity colors
     static let entityPerson = Color(hex: "6B3520")
     static let entityPlace = Color(hex: "3D6B5A")
     static let entityEvent = Color(hex: "8B6914")
@@ -68,6 +86,8 @@ enum Otobio {
     }
 }
 
+// MARK: - Color extensions
+
 extension Color {
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
@@ -76,5 +96,11 @@ extension Color {
         let r, g, b: UInt64
         (r, g, b) = ((int >> 16) & 0xFF, (int >> 8) & 0xFF, int & 0xFF)
         self.init(red: Double(r) / 255, green: Double(g) / 255, blue: Double(b) / 255)
+    }
+
+    init(light: Color, dark: Color) {
+        self.init(uiColor: UIColor { traits in
+            traits.userInterfaceStyle == .dark ? UIColor(dark) : UIColor(light)
+        })
     }
 }
