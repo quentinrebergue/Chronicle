@@ -28,11 +28,23 @@ final class RelationExtractor {
             if events.isEmpty {
                 // Pas d'event explicite mais des entités — créer une relation implicite
                 if !persons.isEmpty || !locations.isEmpty {
+                    let sentenceText = String(text[sentence.range]).trimmingCharacters(in: .whitespacesAndNewlines)
+                    // Titre court : premiers mots significatifs ou lieu/personne
+                    let title: String
+                    if let loc = locations.first {
+                        title = loc.text
+                    } else if let person = persons.first {
+                        title = "avec \(person.text)"
+                    } else {
+                        title = String(sentenceText.prefix(40))
+                    }
+
                     relations.append(EntityRelation(
-                        event: String(text[sentence.range]).trimmingCharacters(in: .whitespacesAndNewlines),
+                        event: title,
                         eventType: .activity,
                         persons: persons.map(\.text),
-                        locations: locations.map(\.text)
+                        locations: locations.map(\.text),
+                        description: sentenceText
                     ))
                 }
             } else {
