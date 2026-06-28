@@ -214,6 +214,33 @@ final class RecordingViewModel: ObservableObject {
 
                 llmStatus = ""
                 state = .done
+
+                // Background : vérification LLM (si disponible)
+                let knownForVerification = preProcessor?.fetchKnownEntities() ?? KnownEntities()
+                if let llm, !relations.isEmpty {
+                    let textForVerification = cleanedText
+                    let relationsForVerification = relations
+                    Task.detached(priority: .background) {
+                        do {
+                            print("🔍 Vérification LLM en background…")
+                            try await llm.loadModel()
+                            let verified = try await llm.verifyEntities(
+                                text: textForVerification,
+                                relations: relationsForVerification,
+                                knownEntities: knownForVerification
+                            )
+                            await llm.unloadModel()
+
+                            print("✅ Vérification LLM terminée:")
+                            for e in verified.correctedEvents {
+                                let p = e.persons.isEmpty ? "—" : e.persons.joined(separator: ", ")
+                                print("   ✓ \(e.title) | \(e.location ?? "—") | \(p)")
+                            }
+                        } catch {
+                            print("⚠️ Vérification LLM: \(error)")
+                        }
+                    }
+                }
             } catch {
                 print("❌ Erreur pipeline: \(error)")
                 state = .error("Erreur : \(error.localizedDescription)")

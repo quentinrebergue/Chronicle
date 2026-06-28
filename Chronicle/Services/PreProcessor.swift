@@ -104,6 +104,20 @@ final class PreProcessor {
         return matrix[m][n]
     }
 
+    func fetchKnownEntities() -> KnownEntities {
+        var entities = KnownEntities()
+        if let personnes = try? viewContext.fetch(Personne.fetchRequest()) {
+            entities.personnes = personnes.compactMap(\.nom)
+        }
+        if let lieux = try? viewContext.fetch(Lieu.fetchRequest()) {
+            entities.lieux = lieux.compactMap(\.nom)
+        }
+        if let themes = try? viewContext.fetch(Theme.fetchRequest()) {
+            entities.themes = themes.compactMap(\.label)
+        }
+        return entities
+    }
+
     private func fetchKnownEntityNames() -> Set<String> {
         var names = Set<String>()
 

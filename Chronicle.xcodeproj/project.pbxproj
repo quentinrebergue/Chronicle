@@ -47,6 +47,7 @@
 		A1000018 /* RelationExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000018 /* RelationExtractor.swift */; };
 		A1000019 /* TextCleaner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000019 /* TextCleaner.swift */; };
 		A100001A /* StructuredEntryBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100001A /* StructuredEntryBuilder.swift */; };
+		A100001B /* KnownEntities.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100001B /* KnownEntities.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -73,6 +74,7 @@
 		B1000010 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B1000010F /* PreProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreProcessor.swift; sourceTree = "<group>"; };
 		B1000011 /* TaggedText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaggedText.swift; sourceTree = "<group>"; };
+		B100001B /* KnownEntities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnownEntities.swift; sourceTree = "<group>"; };
 		B1000012 /* TaggedTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaggedTextView.swift; sourceTree = "<group>"; };
 		B1000013 /* GLiNERService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLiNERService.swift; sourceTree = "<group>"; };
 		B1000014 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
@@ -184,6 +186,7 @@
 			children = (
 				B1000006 /* PersistenceController.swift */,
 				B1000011 /* TaggedText.swift */,
+				B100001B /* KnownEntities.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -320,6 +323,7 @@
 				A1000018 /* RelationExtractor.swift in Sources */,
 				A1000019 /* TextCleaner.swift in Sources */,
 				A100001A /* StructuredEntryBuilder.swift in Sources */,
+				A100001B /* KnownEntities.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

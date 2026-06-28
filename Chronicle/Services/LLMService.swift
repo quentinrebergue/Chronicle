@@ -120,6 +120,106 @@ final class LLMService: ObservableObject {
         return Self.parseEntities(cleaned, sourceText: text)
     }
 
+    // MARK: - Vérification des entités
+
+    struct VerificationResult {
+        let correctedEvents: [VerifiedEvent]
+    }
+
+    struct VerifiedEvent {
+        let title: String
+        let location: String?
+        let persons: [String]
+    }
+
+    func verifyEntities(text: String, relations: [EntityRelation], knownEntities: KnownEntities) async throws -> VerificationResult {
+        guard let modelContainer else { throw LLMError.modelNotLoaded }
+
+        await MainActor.run { isGenerating = true }
+        defer { Task { @MainActor in isGenerating = false } }
+
+        // Construire le résumé des relations à vérifier
+        var relationsText = ""
+        for r in relations {
+            let p = r.persons.isEmpty ? "—" : r.persons.joined(separator: ", ")
+            let l = r.locations.isEmpty ? "—" : r.locations.joined(separator: ", ")
+            relationsText += "- \(r.event) | lieu: \(l) | personnes: \(p)\n"
+        }
+
+        var knownContext = ""
+        if !knownEntities.personnes.isEmpty {
+            knownContext += "Personnes connues: \(knownEntities.personnes.joined(separator: ", "))\n"
+        }
+        if !knownEntities.lieux.isEmpty {
+            knownContext += "Lieux connus: \(knownEntities.lieux.joined(separator: ", "))\n"
+        }
+        if !knownEntities.themes.isEmpty {
+            knownContext += "Thèmes connus: \(knownEntities.themes.joined(separator: ", "))\n"
+        }
+
+        let prompt = """
+            /no_think
+            Tu vérifies des entités extraites automatiquement d'un journal vocal.
+
+            \(knownContext)
+            Événements extraits automatiquement :
+            \(relationsText)
+            Règles :
+            - Corrige les noms qui correspondent à des entités connues (ex: House → Howth si Howth est connu)
+            - Supprime les faux positifs (mots courants détectés comme personnes/lieux)
+            - Corrige les attributions personne/lieu si elles sont fausses
+            - Si un lieu ou une personne est inconnu, mets —
+            - Retourne UNIQUEMENT la liste corrigée, une ligne par événement :
+            titre | lieu | personnes (séparées par des virgules)
+            """
+
+        let messages: [Message] = [
+            ["role": "system", "content": prompt],
+            ["role": "user", "content": text]
+        ]
+
+        let userInput = UserInput(messages: messages)
+        let lmInput = try await modelContainer.prepare(input: userInput)
+
+        let stream = try await modelContainer.generate(
+            input: lmInput,
+            parameters: .init(temperature: 0.1)
+        )
+
+        var fullText = ""
+        for await generation in stream {
+            if let chunk = generation.chunk {
+                fullText += chunk
+            }
+        }
+
+        let cleaned = Self.stripThinkingTags(fullText).trimmingCharacters(in: .whitespacesAndNewlines)
+        return Self.parseVerification(cleaned)
+    }
+
+    private static func parseVerification(_ text: String) -> VerificationResult {
+        var events: [VerifiedEvent] = []
+
+        for line in text.components(separatedBy: "\n") {
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+                .trimmingCharacters(in: CharacterSet(charactersIn: "- "))
+            let parts = trimmed.components(separatedBy: "|").map { $0.trimmingCharacters(in: .whitespaces) }
+            guard parts.count >= 2 else { continue }
+
+            let title = parts[0]
+            let location = parts.count > 1 && parts[1] != "—" && !parts[1].isEmpty ? parts[1] : nil
+            let persons: [String] = parts.count > 2 && parts[2] != "—"
+                ? parts[2].components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+                : []
+
+            if !title.isEmpty {
+                events.append(VerifiedEvent(title: title, location: location, persons: persons))
+            }
+        }
+
+        return VerificationResult(correctedEvents: events)
+    }
+
     // MARK: - Résumé narratif
 
     func generateSummary(prompt: String) async throws -> String {
