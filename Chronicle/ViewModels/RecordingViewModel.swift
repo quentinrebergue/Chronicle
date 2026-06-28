@@ -167,6 +167,15 @@ final class RecordingViewModel: ObservableObject {
                 }
                 merged.sort { $0.range.lowerBound < $1.range.lowerBound }
 
+                // Dédupliquer (même texte = garder la première occurrence)
+                var seen = Set<String>()
+                merged = merged.filter { entity in
+                    let key = entity.text.lowercased()
+                    if seen.contains(key) { return false }
+                    seen.insert(key)
+                    return true
+                }
+
                 // Appliquer les corrections utilisateur sur les entités détectées
                 merged = merged.map { entity in
                     if let corrected = CorrectionStore.shared.correctedName(for: entity.text) {

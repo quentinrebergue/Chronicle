@@ -48,7 +48,7 @@ final class PreProcessor {
 
             for knownName in known {
                 let score = fuzzyScore(entity.text, knownName)
-                if score >= 0.6 && score < 1.0 {
+                if score >= 0.75 && score < 1.0 {
                     corrections.append(SuggestedCorrection(
                         original: entity.text,
                         suggested: knownName,
@@ -68,7 +68,7 @@ final class PreProcessor {
 
             for knownName in known {
                 let score = fuzzyScore(cleaned, knownName)
-                if score >= 0.65 {
+                if score >= 0.75 {
                     let type: DetectedEntity.EntityType = guessType(for: knownName) ?? .place
                     corrections.append(SuggestedCorrection(
                         original: cleaned,
