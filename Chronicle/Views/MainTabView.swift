@@ -7,7 +7,7 @@ struct MainTabView: View {
         TabView {
             HistoryView()
                 .tabItem {
-                    Label("Historique", systemImage: "clock.arrow.circlepath")
+                    Label("Bibliothèque", systemImage: "book")
                 }
 
             RecordingView(llmService: llmService)
@@ -20,5 +20,6 @@ struct MainTabView: View {
                     Label("Entités", systemImage: "person.text.rectangle")
                 }
         }
+        .tint(Otobio.marronFonce)
     }
 }

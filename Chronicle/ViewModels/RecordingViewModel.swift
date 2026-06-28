@@ -8,6 +8,7 @@ final class RecordingViewModel: ObservableObject {
     @Published var transcription: String = ""
     @Published var correctedTranscription: String = ""
     @Published var taggedText: TaggedText?
+    @Published var lastRelations: [EntityRelation] = []
     @Published var elapsedTime: TimeInterval = 0
     @Published var audioLevels: [Float] = Array(repeating: 0, count: 40)
     @Published var llmStatus: String = ""
@@ -205,6 +206,7 @@ final class RecordingViewModel: ObservableObject {
 
                 // Extraire les relations et créer les événements structurés
                 let relations = relationExtractor.extractRelations(from: cleanedText, entities: merged)
+                lastRelations = relations
                 if let toolExecutor, !relations.isEmpty {
                     try toolExecutor.createStructuredEvents(from: relations, for: entry)
                 }
@@ -241,6 +243,7 @@ final class RecordingViewModel: ObservableObject {
         transcription = ""
         correctedTranscription = ""
         taggedText = nil
+        lastRelations = []
         elapsedTime = 0
         audioLevels = Array(repeating: 0, count: 40)
         llmStatus = ""

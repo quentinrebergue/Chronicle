@@ -50,6 +50,8 @@
 		A1000019 /* TextCleaner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000019 /* TextCleaner.swift */; };
 		A100001A /* StructuredEntryBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100001A /* StructuredEntryBuilder.swift */; };
 		A100001B /* KnownEntities.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100001B /* KnownEntities.swift */; };
+		A100001C /* OtobioTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100001C /* OtobioTheme.swift */; };
+		A100001D /* ResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100001D /* ResultView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -88,6 +90,8 @@
 		B1000019 /* TextCleaner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextCleaner.swift; sourceTree = "<group>"; };
 		B100001A /* StructuredEntryBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StructuredEntryBuilder.swift; sourceTree = "<group>"; };
 		B100001B /* KnownEntities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnownEntities.swift; sourceTree = "<group>"; };
+		B100001C /* OtobioTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OtobioTheme.swift; sourceTree = "<group>"; };
+		B100001D /* ResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultView.swift; sourceTree = "<group>"; };
 		B1000099 /* Chronicle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Chronicle.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -175,6 +179,8 @@
 				B1000014 /* HistoryView.swift */,
 				B1000015 /* EntitiesView.swift */,
 				B1000016 /* MainTabView.swift */,
+				B100001C /* OtobioTheme.swift */,
+				B100001D /* ResultView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -332,6 +338,8 @@
 				A1000019 /* TextCleaner.swift in Sources */,
 				A100001A /* StructuredEntryBuilder.swift in Sources */,
 				A100001B /* KnownEntities.swift in Sources */,
+				A100001C /* OtobioTheme.swift in Sources */,
+				A100001D /* ResultView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

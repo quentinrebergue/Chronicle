@@ -5,30 +5,29 @@ struct TaggedTextView: View {
     let onTagTap: (TaggedSegment) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Texte avec couleurs inline
+        VStack(alignment: .leading, spacing: 10) {
             Text(buildAttributedString())
-                .font(.body)
+                .font(Otobio.bodyText())
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            // Chips d'entités cliquables
             let entitySegments = taggedText.segments.filter { $0.entity != nil }
             if !entitySegments.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
+                    HStack(spacing: 6) {
                         ForEach(entitySegments) { segment in
                             Button(action: { onTagTap(segment) }) {
                                 HStack(spacing: 4) {
                                     Image(systemName: icon(for: segment.entity!))
-                                        .font(.caption2)
+                                        .font(.system(size: 10))
                                     Text(segment.text)
-                                        .font(.caption)
+                                        .font(Otobio.micro(12))
                                 }
                                 .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(color(for: segment.entity!).opacity(0.15))
+                                .padding(.vertical, 5)
+                                .background(color(for: segment.entity!).opacity(0.12))
                                 .foregroundStyle(color(for: segment.entity!))
                                 .clipShape(Capsule())
+                                .overlay(Capsule().stroke(color(for: segment.entity!).opacity(0.3), lineWidth: 0.5))
                             }
                             .buttonStyle(.plain)
                         }
@@ -45,7 +44,9 @@ struct TaggedTextView: View {
             var part = AttributedString(segment.text)
             if let type = segment.entity {
                 part.foregroundColor = color(for: type)
-                part.font = .body.bold()
+                part.font = Otobio.bodyText().bold()
+            } else {
+                part.foregroundColor = Otobio.marronNuit
             }
             result.append(part)
         }
@@ -55,11 +56,11 @@ struct TaggedTextView: View {
 
     private func color(for type: DetectedEntity.EntityType) -> Color {
         switch type {
-        case .place: .blue
-        case .person: .green
-        case .organization: .orange
-        case .event: .yellow
-        case .activity: .purple
+        case .place: Otobio.entityPlace
+        case .person: Otobio.entityPerson
+        case .organization: Otobio.accent
+        case .event: Otobio.entityEvent
+        case .activity: Otobio.entityActivity
         }
     }
 
@@ -94,23 +95,22 @@ struct TagEditorSheet: View {
                     Picker("Type", selection: $selectedType) {
                         Text("Lieu").tag(DetectedEntity.EntityType?.some(.place))
                         Text("Personne").tag(DetectedEntity.EntityType?.some(.person))
-                        Text("Organisation").tag(DetectedEntity.EntityType?.some(.organization))
                         Text("Événement").tag(DetectedEntity.EntityType?.some(.event))
                         Text("Activité").tag(DetectedEntity.EntityType?.some(.activity))
-                        Text("Aucun (supprimer le tag)").tag(DetectedEntity.EntityType?.none)
+                        Text("Supprimer le tag").tag(DetectedEntity.EntityType?.none)
                     }
                     .pickerStyle(.inline)
                     .labelsHidden()
                 }
             }
-            .navigationTitle("Modifier l'entité")
+            .navigationTitle("Modifier")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Annuler") { isPresented = false }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Enregistrer") {
+                    Button("OK") {
                         onSave(editedText, selectedType)
                         isPresented = false
                     }
