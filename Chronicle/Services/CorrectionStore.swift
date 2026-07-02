@@ -16,7 +16,7 @@ final class CorrectionStore {
         let key = original.lowercased()
         corrections[key] = corrected
         save()
-        print("📝 Correction enregistrée: \"\(original)\" → \"\(corrected)\"")
+        AppLogger.log("📝 Correction enregistrée: \"\(original)\" → \"\(corrected)\"")
     }
 
     func correctedName(for text: String) -> String? {
@@ -25,12 +25,17 @@ final class CorrectionStore {
 
     var allCorrections: [String: String] { corrections }
 
+    func clearAll() {
+        corrections.removeAll()
+        save()
+    }
+
     private func load() {
         guard let data = try? Data(contentsOf: fileURL),
               let dict = try? JSONDecoder().decode([String: String].self, from: data) else { return }
         corrections = dict
         if !corrections.isEmpty {
-            print("📝 \(corrections.count) corrections chargées")
+            AppLogger.log("📝 \(corrections.count) corrections chargées")
         }
     }
 

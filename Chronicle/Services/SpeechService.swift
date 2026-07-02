@@ -32,15 +32,15 @@ final class SpeechService {
         let status = await AssetInventory.status(forModules: [transcriber])
 
         if status == .installed {
-            print("✅ Modèle de langue français déjà installé")
+            AppLogger.log("✅ Modèle de langue français déjà installé")
             return
         }
 
-        print("📥 Téléchargement du modèle de langue française…")
+        AppLogger.log("📥 Téléchargement du modèle de langue française…")
         if let downloader = try await AssetInventory.assetInstallationRequest(supporting: [transcriber]) {
             try await downloader.downloadAndInstall()
         }
-        print("✅ Modèle de langue prêt")
+        AppLogger.log("✅ Modèle de langue prêt")
     }
 
     func transcribe(audioURL: URL) async throws -> String {
@@ -51,7 +51,7 @@ final class SpeechService {
         let transcriber = SpeechTranscriber(locale: locale, preset: .transcription)
         let audioFile = try AVAudioFile(forReading: audioURL)
 
-        let analyzer = try await SpeechAnalyzer(
+        _ = try await SpeechAnalyzer(
             inputAudioFile: audioFile,
             modules: [transcriber],
             finishAfterFile: true

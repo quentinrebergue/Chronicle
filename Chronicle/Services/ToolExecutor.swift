@@ -37,7 +37,7 @@ final class ToolExecutor {
             }
         }
         try viewContext.save()
-        print("💾 Entités NLP sauvegardées: \(detected.map { "[\($0.type.rawValue):\($0.text)]" })")
+        AppLogger.log("💾 Entités NLP sauvegardées: \(detected.map { "[\($0.type.rawValue):\($0.text)]" })")
     }
 
     func createStructuredEvents(from relations: [EntityRelation], for entry: EntreeVocale) throws {
@@ -62,12 +62,41 @@ final class ToolExecutor {
         }
 
         try viewContext.save()
-        print("💾 Événements structurés créés: \(relations.count)")
+        AppLogger.log("💾 Événements structurés créés: \(relations.count)")
         for r in relations {
             let p = r.persons.isEmpty ? "—" : r.persons.joined(separator: ", ")
             let l = r.locations.isEmpty ? "—" : r.locations.joined(separator: ", ")
-            print("   📌 \(r.event) | \(l) | \(p)")
+            AppLogger.log("   📌 \(r.event) | \(l) | \(p)")
         }
+    }
+
+    func replaceStructuredEvents(with relations: [EntityRelation], for entry: EntreeVocale) throws {
+        let existingEvents = (entry.evenements as? Set<Evenement>) ?? []
+        for event in existingEvents {
+            viewContext.delete(event)
+        }
+
+        for relation in relations {
+            let event = Evenement(context: viewContext)
+            event.id = UUID()
+            event.titre = relation.event
+            event.dateEvenement = entry.dateEnregistrement
+            event.lieu = relation.locations.first
+            event.descriptionTexte = relation.description.isEmpty ? relation.event : relation.description
+
+            for personName in relation.persons {
+                let request = Personne.fetchRequest()
+                request.predicate = NSPredicate(format: "nom ==[cd] %@", personName)
+                if let person = try viewContext.fetch(request).first {
+                    event.addToPersonnes(person)
+                }
+            }
+
+            entry.addToEvenements(event)
+        }
+
+        try viewContext.save()
+        AppLogger.log("💾 Événements remplacés par vérification IA: \(relations.count)")
     }
 
     private func linkExistingEvent(name: String, entry: EntreeVocale) throws {
