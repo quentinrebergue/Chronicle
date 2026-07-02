@@ -117,7 +117,7 @@ struct EntryCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(entry.dateEnregistrement ?? Date(), format: .dateTime.weekday(.wide).day())
+                Text(entry.dateEnregistrement ?? Date(), format: .dateTime.weekday(.wide).day().month(.abbreviated).year())
                     .font(Otobio.micro())
                     .foregroundStyle(Otobio.textTertiary)
                 Spacer()
@@ -128,7 +128,7 @@ struct EntryCard: View {
 
             if let titre = entry.titre, !titre.isEmpty {
                 Text(titre)
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(Otobio.textPrimary)
             } else {
                 // Le titre s'écrit encore — skeleton plutôt qu'un texte d'attente

@@ -26,7 +26,8 @@ struct SideMenuView: View {
 
             menuRow(icon: "gearshape", label: "Paramètres", destination: .settings)
                 .padding(.horizontal, 12)
-                .padding(.vertical, 10)
+                .padding(.top, 10)
+                .padding(.bottom, 20)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(Otobio.background)
@@ -40,7 +41,7 @@ struct SideMenuView: View {
             Spacer()
         }
         .padding(.horizontal, 24)
-        .padding(.top, 20)
+        .padding(.top, 30)
         .padding(.bottom, 8)
     }
 
