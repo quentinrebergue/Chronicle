@@ -49,6 +49,52 @@ final class StructuredEntryBuilder {
         return result
     }
 
+    /// Faits agrégés d'une semaine : personnes récurrentes, lieux, événements marquants.
+    /// Donne au LLM des faits précis au lieu de le laisser deviner à partir des résumés.
+    static func buildWeeklyFacts(entries: [EntreeVocale]) -> String {
+        var personCounts: [String: Int] = [:]
+        var placeCounts: [String: Int] = [:]
+        var eventTitles: [String] = []
+
+        for entry in entries {
+            let events = (entry.evenements as? Set<Evenement>) ?? []
+            for event in events {
+                if let titre = event.titre, !titre.isEmpty {
+                    eventTitles.append(titre)
+                }
+                if let lieu = event.lieu, !lieu.isEmpty {
+                    placeCounts[lieu, default: 0] += 1
+                }
+                let personnes = (event.personnes as? Set<Personne>) ?? []
+                for personne in personnes {
+                    if let nom = personne.nom, !nom.isEmpty {
+                        personCounts[nom, default: 0] += 1
+                    }
+                }
+            }
+            let entryPersons = (entry.personnes as? Set<Personne>) ?? []
+            for personne in entryPersons {
+                if let nom = personne.nom, !nom.isEmpty, personCounts[nom] == nil {
+                    personCounts[nom] = 1
+                }
+            }
+        }
+
+        var facts = ""
+        if !personCounts.isEmpty {
+            let sorted = personCounts.sorted { $0.value > $1.value }
+            facts += "Personnes de la semaine : " + sorted.map { "\($0.key) (\($0.value)×)" }.joined(separator: ", ") + "\n"
+        }
+        if !placeCounts.isEmpty {
+            let sorted = placeCounts.sorted { $0.value > $1.value }
+            facts += "Lieux : " + sorted.map { $0.value > 1 ? "\($0.key) (\($0.value)×)" : $0.key }.joined(separator: ", ") + "\n"
+        }
+        if !eventTitles.isEmpty {
+            facts += "Événements : " + eventTitles.joined(separator: " · ") + "\n"
+        }
+        return facts
+    }
+
     static func fetchEntriesForWeek(weekOffset: Int = 0, context: NSManagedObjectContext) -> [EntreeVocale] {
         let calendar = Calendar.current
         let now = Date()

@@ -76,6 +76,21 @@ final class AudioRecorderService: NSObject, ObservableObject {
         isRecording = false
     }
 
+    /// Arrête l'enregistrement et supprime le fichier — utilisé pour le geste "glisser pour supprimer"
+    func cancelRecording() {
+        let url = recorder?.url
+        recorder?.stop()
+        timer?.invalidate()
+        levelTimer?.invalidate()
+        timer = nil
+        levelTimer = nil
+        isRecording = false
+        if let url {
+            try? FileManager.default.removeItem(at: url)
+        }
+        recorder = nil
+    }
+
     func deactivateSession() {
         // Ne pas désactiver — la réactivation prend ~7 secondes
     }

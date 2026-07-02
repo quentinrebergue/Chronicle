@@ -24,7 +24,7 @@ struct EntitiesView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        Group {
             List {
                 // Personnes
                 Section {
@@ -131,7 +131,8 @@ struct EntitiesView: View {
                     }
                 }
             }
-            .navigationTitle("Entités")
+            .navigationTitle("Personnes & lieux")
+            .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showingAddSheet) {
                 AddEntitySheet(type: addType, isPresented: $showingAddSheet)
                     .environment(\.managedObjectContext, viewContext)

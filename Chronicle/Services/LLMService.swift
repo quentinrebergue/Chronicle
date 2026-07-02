@@ -1,5 +1,6 @@
 import Foundation
 import Hub
+import MLX
 import MLXLLM
 import MLXLMCommon
 import Tokenizers
@@ -28,12 +29,25 @@ final class LLMService: ObservableObject {
         }
     }
 
+    private static func downloadedKey(for model: Model) -> String {
+        "otobio.modelVerified.\(model.rawValue)"
+    }
+
+    /// Une fois le modèle vérifié une première fois, on saute la vérification réseau
+    /// (l'appel Hub prend ~10-15s même quand tout est déjà en cache local, à chaque lancement).
     func downloadModel(_ model: Model? = nil) async throws {
         if let model { currentModel = model }
-        let downloader = HubDownloader()
-        let repo = Hub.Repo(id: currentModel.rawValue)
+        let key = Self.downloadedKey(for: currentModel)
 
-        print("📥 Vérification modèle \(currentModel.rawValue)…")
+        if UserDefaults.standard.bool(forKey: key) {
+            AppLogger.log("✅ Modèle déjà vérifié lors d'un lancement précédent, skip réseau")
+            return
+        }
+
+        let downloader = HubDownloader()
+        _ = Hub.Repo(id: currentModel.rawValue)
+
+        AppLogger.log("📥 Vérification modèle \(currentModel.rawValue)…")
         _ = try await downloader.download(
             id: currentModel.rawValue,
             revision: nil,
@@ -43,12 +57,17 @@ final class LLMService: ObservableObject {
             let percent = Int(progress.fractionCompleted * 100)
             let completed = ByteCountFormatter.string(fromByteCount: progress.completedUnitCount, countStyle: .file)
             let total = ByteCountFormatter.string(fromByteCount: progress.totalUnitCount, countStyle: .file)
-            print("📦 Téléchargement: \(percent)% — \(completed) / \(total)")
+            AppLogger.log("📦 Téléchargement: \(percent)% — \(completed) / \(total)")
         }
-        print("✅ Modèle téléchargé sur le disque")
+        AppLogger.log("✅ Modèle téléchargé sur le disque")
+        UserDefaults.standard.set(true, forKey: key)
     }
 
     func loadModel(_ model: Model? = nil) async throws {
+        if modelContainer != nil {
+            AppLogger.log("✅ Modèle LLM déjà en RAM, skip load")
+            return
+        }
         if let model { currentModel = model }
         let config = ModelConfiguration(
             id: currentModel.rawValue
@@ -57,6 +76,7 @@ final class LLMService: ObservableObject {
         let downloader = HubDownloader()
         let tokenizerLoader = HFTokenizerLoader()
 
+        AppLogger.log("⏳ Chargement du modèle \(currentModel.rawValue) en RAM…")
         modelContainer = try await LLMModelFactory.shared.loadContainer(
             from: downloader,
             using: tokenizerLoader,
@@ -64,13 +84,13 @@ final class LLMService: ObservableObject {
         ) { _ in }
 
         await MainActor.run { isLoaded = true }
-        print("✅ Modèle LLM chargé en RAM")
+        AppLogger.log("✅ Modèle LLM chargé en RAM")
     }
 
     func unloadModel() async {
         modelContainer = nil
         await MainActor.run { isLoaded = false }
-        print("🗑️ Modèle LLM déchargé de la RAM")
+        AppLogger.log("🗑️ Modèle LLM déchargé de la RAM")
     }
 
     // MARK: - NER : extraction d'entités
@@ -131,15 +151,13 @@ final class LLMService: ObservableObject {
         let title: String
         let location: String?
         let persons: [String]
+        let excerpt: String
     }
 
     func verifyEntities(text: String, relations: [EntityRelation], knownEntities: KnownEntities) async throws -> VerificationResult {
-        guard let modelContainer else { throw LLMError.modelNotLoaded }
-
         await MainActor.run { isGenerating = true }
         defer { Task { @MainActor in isGenerating = false } }
 
-        // Construire le résumé des relations à vérifier
         var relationsText = ""
         for r in relations {
             let p = r.persons.isEmpty ? "—" : r.persons.joined(separator: ", ")
@@ -154,47 +172,67 @@ final class LLMService: ObservableObject {
         if !knownEntities.lieux.isEmpty {
             knownContext += "Lieux connus: \(knownEntities.lieux.joined(separator: ", "))\n"
         }
-        if !knownEntities.themes.isEmpty {
-            knownContext += "Thèmes connus: \(knownEntities.themes.joined(separator: ", "))\n"
-        }
 
-        let prompt = """
-            /no_think
-            Tu vérifies des entités extraites automatiquement d'un journal vocal.
-
-            \(knownContext)
-            Événements extraits automatiquement :
-            \(relationsText)
-            Règles :
-            - Corrige les noms qui correspondent à des entités connues (ex: House → Howth si Howth est connu)
-            - Supprime les faux positifs (mots courants détectés comme personnes/lieux)
-            - Corrige les attributions personne/lieu si elles sont fausses
-            - Si un lieu ou une personne est inconnu, mets —
-            - Retourne UNIQUEMENT la liste corrigée, une ligne par événement :
-            titre | lieu | personnes (séparées par des virgules)
+        let systemPrompt = """
+            Tu corriges des événements extraits automatiquement d'un journal vocal français.
+            Réponds UNIQUEMENT avec la liste corrigée, une ligne par événement, ce format exact :
+            titre | lieu | personnes | extrait
+            Utilise — si pas de lieu ou de personnes.
+            L'extrait est le passage du texte original lié à cet événement (copié tel quel, peut couvrir plusieurs phrases).
             """
 
+        let userPrompt = """
+            \(knownContext)
+            Texte original :
+            \(text)
+
+            Événements détectés automatiquement :
+            \(relationsText)
+            Corrige :
+            - Les noms mal transcrits (ex: "House" → "Howth" si c'est un lieu connu)
+            - Les faux positifs (ex: "douche" n'est pas un événement notable)
+            - Les mauvaises attributions personne/lieu
+            - Ajoute les événements manqués (ex: un événement mentionné dans le texte mais pas détecté)
+            - Mets un titre court et descriptif pour chaque événement
+            - Pour chaque événement, copie le passage du texte original correspondant dans le champ extrait
+            """
+
+        AppLogger.log("🤖 Vérification: chargement modèle…")
+        try await loadModel()
+
         let messages: [Message] = [
-            ["role": "system", "content": prompt],
-            ["role": "user", "content": text]
+            ["role": "system", "content": systemPrompt],
+            ["role": "user", "content": userPrompt]
         ]
 
-        let userInput = UserInput(messages: messages)
-        let lmInput = try await modelContainer.prepare(input: userInput)
+        let userInput = UserInput(messages: messages, additionalContext: ["enable_thinking": false])
+        AppLogger.log("🤖 Vérification: prepare()…")
+        guard let container = modelContainer else { throw LLMError.modelNotLoaded }
+        let lmInput = try await container.prepare(input: userInput)
 
-        let stream = try await modelContainer.generate(
+        AppLogger.log("🤖 Vérification: generate() (max 500 tokens)…")
+        let stream = try await container.generate(
             input: lmInput,
-            parameters: .init(temperature: 0.1)
+            parameters: .init(maxTokens: 500, temperature: 0.1)
         )
 
         var fullText = ""
+        var tokenCount = 0
         for await generation in stream {
             if let chunk = generation.chunk {
                 fullText += chunk
+                tokenCount += 1
+                if tokenCount % 20 == 0 {
+                    AppLogger.log("🤖 Vérification: \(tokenCount) tokens…")
+                }
             }
         }
 
-        let cleaned = Self.stripThinkingTags(fullText).trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleaned = Self.stripThinkingTags(fullText)
+        AppLogger.log("🤖 Vérification terminée: \(tokenCount) tokens → \(cleaned.prefix(200))…")
+
+        Memory.clearCache()
+
         return Self.parseVerification(cleaned)
     }
 
@@ -212,9 +250,10 @@ final class LLMService: ObservableObject {
             let persons: [String] = parts.count > 2 && parts[2] != "—"
                 ? parts[2].components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
                 : []
+            let excerpt = parts.count > 3 && parts[3] != "—" ? parts[3] : ""
 
             if !title.isEmpty {
-                events.append(VerifiedEvent(title: title, location: location, persons: persons))
+                events.append(VerifiedEvent(title: title, location: location, persons: persons, excerpt: excerpt))
             }
         }
 
@@ -223,33 +262,47 @@ final class LLMService: ObservableObject {
 
     // MARK: - Résumé narratif
 
-    func generateSummary(prompt: String) async throws -> String {
+    func generateSummary(prompt: String, maxTokens: Int = 300) async throws -> String {
         guard let modelContainer else { throw LLMError.modelNotLoaded }
 
         await MainActor.run { isGenerating = true }
         defer { Task { @MainActor in isGenerating = false } }
+
+        AppLogger.log("🤖 Préparation du prompt (\(prompt.count) chars)…")
 
         let messages: [Message] = [
             ["role": "system", "content": NarrativePrompts.summarizer],
             ["role": "user", "content": prompt]
         ]
 
-        let userInput = UserInput(messages: messages)
+        let userInput = UserInput(messages: messages, additionalContext: ["enable_thinking": false])
+        AppLogger.log("🤖 prepare() appelé…")
         let lmInput = try await modelContainer.prepare(input: userInput)
-
+        AppLogger.log("🤖 prepare() terminé, lancement generate()…")
         let stream = try await modelContainer.generate(
             input: lmInput,
-            parameters: .init(temperature: 0.7)
+            parameters: .init(maxTokens: maxTokens, temperature: 0.7, topP: 0.9)
         )
 
         var fullText = ""
+        var tokenCount = 0
         for await generation in stream {
             if let chunk = generation.chunk {
                 fullText += chunk
+                tokenCount += 1
+                if tokenCount % 20 == 0 {
+                    AppLogger.log("🤖 … \(tokenCount) tokens générés")
+                }
             }
         }
 
-        return fullText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleaned = Self.stripThinkingTags(fullText).trimmingCharacters(in: .whitespacesAndNewlines)
+        AppLogger.log("🤖 Généré: \(tokenCount) tokens, \(cleaned.count) chars output: \(cleaned.prefix(100))…")
+
+        AppLogger.log("🤖 Nettoyage cache GPU…")
+        Memory.clearCache()
+
+        return cleaned
     }
 
     // MARK: - Parsing
@@ -286,13 +339,18 @@ final class LLMService: ObservableObject {
     }
 
     private static func stripThinkingTags(_ text: String) -> String {
-        guard let range = text.range(of: "<think>[\\s\\S]*?</think>", options: .regularExpression) else {
-            if let start = text.range(of: "<think>") {
-                return String(text[..<start.lowerBound])
-            }
-            return text
+        var result = text
+        // Strip <think>...</think> blocks
+        if let range = result.range(of: "<think>[\\s\\S]*?</think>", options: .regularExpression) {
+            result = result.replacingCharacters(in: range, with: "")
+        } else if let start = result.range(of: "<think>") {
+            result = String(result[..<start.lowerBound])
         }
-        return text.replacingCharacters(in: range, with: "")
+        // Strip "Thinking Process:" or similar prefixes
+        if let range = result.range(of: "^\\s*(Thinking Process|Réflexion|Analyse)[:\\s]*[\\s\\S]*?\\n\\n", options: .regularExpression) {
+            result = String(result[range.upperBound...])
+        }
+        return result.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 

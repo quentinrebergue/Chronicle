@@ -63,12 +63,12 @@ final class RelationExtractor {
         }
 
         // Log
-        print("🔗 Relations extraites:")
+        AppLogger.log("🔗 Relations extraites:")
         for r in relations {
             let pStr = r.persons.isEmpty ? "—" : r.persons.joined(separator: ", ")
             let lStr = r.locations.isEmpty ? "—" : r.locations.joined(separator: ", ")
             let eventLabel = r.event.count > 40 ? String(r.event.prefix(40)) + "…" : r.event
-            print("   \(eventLabel) | lieux: \(lStr) | personnes: \(pStr)")
+            AppLogger.log("   \(eventLabel) | lieux: \(lStr) | personnes: \(pStr)")
         }
 
         return relations

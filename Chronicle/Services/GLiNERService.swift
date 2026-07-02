@@ -34,7 +34,17 @@ final class GLiNERService {
 
     // MARK: - Setup
 
+    func unload() {
+        session = nil
+        env = nil
+        hfTokenizer = nil
+        AppLogger.log("🧹 GLiNER déchargé de la RAM")
+    }
+
+    var isLoaded: Bool { session != nil }
+
     func load() async throws {
+        if isLoaded { return }
         guard let modelPath = Bundle.main.path(forResource: "gliner2_base", ofType: "onnx") else {
             throw GLiNERError.modelNotFound
         }
@@ -61,14 +71,14 @@ final class GLiNERService {
         try configJSON.write(to: tmpDir.appendingPathComponent("tokenizer_config.json"), atomically: true, encoding: .utf8)
 
         hfTokenizer = try await AutoTokenizer.from(modelFolder: tmpDir)
-        print("✅ GLiNER2 chargé (modèle + tokenizer)")
+        AppLogger.log("✅ GLiNER2 chargé (modèle + tokenizer)")
     }
 
     // MARK: - Public API
 
     func extractEntities(from text: String, entityTypes: [String]? = nil) throws -> [GLiNEREntity] {
         guard let session, let hfTokenizer else {
-            print("⚠️ GLiNER2: session ou tokenizer non chargé")
+            AppLogger.log("⚠️ GLiNER2: session ou tokenizer non chargé")
             return []
         }
 
@@ -76,7 +86,7 @@ final class GLiNERService {
         let normalizedText = normalizeText(text)
 
         let (feeds, words) = buildInputs(text: normalizedText, labels: types, tokenizer: hfTokenizer)
-        print("🔧 GLiNER2 inputs: \(words.count) mots, \(feeds.inputIds.count) tokens")
+        AppLogger.log("🔧 GLiNER2 inputs: \(words.count) mots, \(feeds.inputIds.count) tokens")
 
         let scores = try runInference(feeds: feeds, numLabels: types.count, numWords: words.count)
 
@@ -91,7 +101,7 @@ final class GLiNERService {
             return GLiNEREntity(text: String(text[range]), label: entity.label, score: entity.score, startIdx: start, endIdx: end)
         }
 
-        print("🟢 GLiNER2: \(remapped.map { "[\($0.label):\($0.text) \(String(format: "%.0f", $0.score * 100))%]" })")
+        AppLogger.log("🟢 GLiNER2: \(remapped.map { "[\($0.label):\($0.text) \(String(format: "%.0f", $0.score * 100))%]" })")
         return remapped
     }
 
@@ -202,7 +212,7 @@ final class GLiNERService {
                 }
             }
             if firstToken == nil {
-                print("⚠️ GLiNER2: word '\(wordStrings[wordIdx])' not found in token mapping")
+                AppLogger.log("⚠️ GLiNER2: word '\(wordStrings[wordIdx])' not found in token mapping")
             }
             textPositions.append(Int64(firstToken ?? 0))
         }
@@ -282,7 +292,7 @@ final class GLiNERService {
         }
 
         let info = try scoresValue.tensorTypeAndShapeInfo()
-        print("🔧 GLiNER2 output shape: \(info.shape)")
+        AppLogger.log("🔧 GLiNER2 output shape: \(info.shape)")
 
         let scoresData = try scoresValue.tensorData() as Data
         let floatCount = scoresData.count / MemoryLayout<Float>.size

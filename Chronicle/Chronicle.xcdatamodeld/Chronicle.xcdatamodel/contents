@@ -7,6 +7,7 @@
         <attribute name="transcriptionBrute" optional="YES" attributeType="String"/>
         <attribute name="transcriptionCorrigee" optional="YES" attributeType="String"/>
         <attribute name="resumeEntree" optional="YES" attributeType="String"/>
+        <attribute name="titre" optional="YES" attributeType="String"/>
         <attribute name="emotionDominante" optional="YES" attributeType="String"/>
         <attribute name="intensiteEmotion" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="cheminAudio" optional="YES" attributeType="String"/>
@@ -51,6 +52,19 @@
     <entity name="ResumeHebdo" representedClassName="ResumeHebdo" syncable="YES" codeGenerationType="class">
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="semaine" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="annee" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="texteResume" attributeType="String"/>
+        <attribute name="dateGeneration" attributeType="Date" usesScalarValueType="NO"/>
+    </entity>
+    <entity name="ResumeMensuel" representedClassName="ResumeMensuel" syncable="YES" codeGenerationType="class">
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="mois" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="annee" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="texteResume" attributeType="String"/>
+        <attribute name="dateGeneration" attributeType="Date" usesScalarValueType="NO"/>
+    </entity>
+    <entity name="ResumeAnnuel" representedClassName="ResumeAnnuel" syncable="YES" codeGenerationType="class">
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="annee" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="texteResume" attributeType="String"/>
         <attribute name="dateGeneration" attributeType="Date" usesScalarValueType="NO"/>
